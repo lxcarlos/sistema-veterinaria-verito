@@ -13,7 +13,7 @@ Este documento define qué parte del sistema desarrollará cada integrante del e
 
 ---
 
-### 🟡 Christian (Lógica de Negocio y Conexión)
+### 🟡 Christian (Lógica de Negocio y Conexión) El gerrado es puto 
 *Te encargarás de conectar la base de datos con el código y estructurar parte de la lógica central.*
 - **Tareas asignadas:**
   1. Crear el módulo de conexión a SQL Server (`src/database/db.ts`) utilizando la librería `mssql` y las variables de entorno `.env`.
