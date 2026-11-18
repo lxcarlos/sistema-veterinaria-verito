@@ -1,12 +1,12 @@
 export class Mascota {
-    private idMascota?: number;
+    private idMascota: number;
     private idEspecie: number;
     private idDueno: number; // Referencia al usuario dueño
     private nombreMascota: string;
     private edadMascota: number;
     private pesoMascota: number;
 
-    constructor(idEspecie: number, idDueno: number, nombreMascota: string, edadMascota: number, pesoMascota: number, idMascota?: number) {
+    constructor(idEspecie: number, idDueno: number, nombreMascota: string, edadMascota: number, pesoMascota: number, idMascota: number) {
         this.idMascota = idMascota;
         this.idEspecie = idEspecie;
         this.idDueno = idDueno;
@@ -16,7 +16,7 @@ export class Mascota {
     }
 
     // Getters
-    public getIdMascota(): number | undefined {
+    public getIdMascota(): number {
         return this.idMascota;
     }
 

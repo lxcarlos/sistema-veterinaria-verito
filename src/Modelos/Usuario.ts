@@ -1,12 +1,12 @@
 export class Usuario {
     // Encapsulamiento: propiedades privadas
-    private idUsuario?: number;
+    private idUsuario: number;
     private idRol: number;
     private nombreUsuario: string;
     private emailUsuario: string;
     private passwordHash: string;
 
-    constructor(idRol: number, nombreUsuario: string, emailUsuario: string, passwordHash: string, idUsuario?: number) {
+    constructor(idRol: number, nombreUsuario: string, emailUsuario: string, passwordHash: string, idUsuario: number) {
         this.idUsuario = idUsuario;
         this.idRol = idRol;
         this.nombreUsuario = nombreUsuario;
@@ -15,7 +15,7 @@ export class Usuario {
     }
 
     // Getters para acceder a los datos de forma segura
-    public getIdUsuario(): number | undefined {
+    public getIdUsuario(): number {
         return this.idUsuario;
     }
 
