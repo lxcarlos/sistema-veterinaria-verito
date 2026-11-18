@@ -29,3 +29,6 @@ Este documento define qué parte del sistema desarrollará cada integrante del e
   2. Implementar el **Patrón de Diseño Strategy** para el motor de decisiones o reglas de derivación médica.
   3. Programar el archivo principal (`src/main.ts`) que unifica la ejecución del sistema, las clases de POO y los patrones de diseño para la demostración final.
   4. Revisar la integración de los códigos de tus compañeros antes de la entrega final.
+
+
+  //ola
