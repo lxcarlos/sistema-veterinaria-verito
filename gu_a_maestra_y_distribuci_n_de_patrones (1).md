@@ -82,6 +82,61 @@ sistema/
 
 ---
 
+## ✅ Acuerdo funcional inicial: pre-triage y citas
+
+Este acuerdo define el primer alcance del árbol de decisiones y el flujo de citas. Los puntajes son una propuesta funcional basada en el prototipo actual; **no son un criterio médico validado ni sustituyen la valoración de un veterinario**. Antes de usarlo con pacientes reales, un veterinario debe revisar las preguntas, puntajes y umbrales.
+
+### Preguntas y puntajes iniciales
+
+La especie se obtiene de la mascota seleccionada y no suma puntos. Después, el cliente responde:
+
+| Pregunta | Opción | Puntos |
+|---|---|---:|
+| ¿Cuál es el síntoma principal? | Ninguno claro | 0 |
+| | Vómito o diarrea | 2 |
+| | Cojera o dolor | 2 |
+| | Dificultad para respirar | 7 |
+| ¿Desde cuándo presenta el síntoma? | Desde hoy | 0 |
+| | De 2 a 3 días | 1 |
+| | Más de una semana | 2 |
+| ¿Cómo está su apetito? | Normal | 0 |
+| | Come poco | 1 |
+| | No quiere comer | 2 |
+| ¿Cómo está su energía? | Normal | 0 |
+| | Decaído | 1 |
+| | No se levanta | 3 |
+
+El sistema suma los puntos de las respuestas y clasifica el resultado:
+
+| Puntaje total | Nivel |
+|---:|---|
+| 0 a 3 | Leve |
+| 4 a 6 | Moderado |
+| 7 o más | Grave |
+
+Una señal que parezca una emergencia, como dificultad para respirar, debe mostrar que el cliente busque atención veterinaria urgente y **no espere una respuesta a una solicitud de calendario**.
+
+### Regla y flujo de citas
+
+1. Solo un resultado **grave** habilita solicitar una cita desde la plataforma. Los resultados leves o moderados muestran su recomendación, pero no habilitan ese flujo de cita.
+2. El cliente propone una fecha y hora futuras, en intervalos de 30 minutos, con el selector de calendario y envía una solicitud. En ese momento queda **Pendiente**; todavía no es una cita confirmada. En esta primera versión no se configura un horario laboral del veterinario: se evita que haya solicitudes pendientes o aceptadas para la misma hora y el veterinario confirma la disponibilidad al aceptar o rechazar.
+3. El veterinario revisa las solicitudes pendientes y puede **Aceptar** o **Rechazar**. Un pre-triage puede tener como máximo una solicitud pendiente, aceptada o completada; si se rechaza, el cliente puede solicitar otro horario.
+4. Al aceptar, la solicitud pasa a **Aceptada** y el horario queda confirmado. Al rechazar, pasa a **Rechazada** y ese horario puede solicitarse de nuevo.
+5. La plataforma debe mostrar al cliente el estado actualizado. La decisión de permitir citas únicamente para casos graves y los umbrales deben validarse con un veterinario; esta regla nunca debe impedir que alguien contacte directamente a una clínica.
+
+### Criterios para considerar completo este flujo
+
+- Se muestran las preguntas y opciones de esta especificación, se validan las respuestas y se calcula el nivel usando los umbrales indicados.
+- Solo un resultado grave permite elegir un horario y enviar una solicitud.
+- Se solicita una fecha y hora futura en intervalos de 30 minutos; no se permiten solicitudes pendientes o aceptadas duplicadas para el mismo horario, y una solicitud pendiente no se presenta como confirmada.
+- El veterinario puede aceptar o rechazar una solicitud, y el cliente puede consultar el resultado.
+- Una solicitud aceptada confirma el horario; una rechazada libera el horario.
+- El resultado se comunica como pre-triage, no como diagnóstico médico.
+
+Este flujo de calendario es una demostración del lado del cliente: las solicitudes se guardan en memoria del navegador y no se comparten entre dispositivos ni sobreviven a una recarga. Para el uso real, estos estados y transiciones deben implementarse en el servidor y persistirse en SQL Server.
+
+---
+
 ## 🚀 Pasos Siguientes para el Equipo
 
 1. **Actualizar el entorno local:**

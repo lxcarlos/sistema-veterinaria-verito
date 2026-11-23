@@ -77,7 +77,18 @@ async function renderizar() {
       ]);
       contenido = vistas.vistaMascotas(mascotas, especies);
     } else if (usuario.Nombre_Rol === "Dueño" && vistaActual === "akinator") {
-      const mascotas = await api.obtenerMascotas();
+      const [mascotas, citas] = await Promise.all([
+        api.obtenerMascotas(),
+        api.obtenerCitas(),
+      ]);
+      mensajesChat
+        .filter((mensaje) => mensaje.Tipo === "resultado" && mensaje.CitaId)
+        .forEach((mensaje) => {
+          const cita = citas.find((item) => item.Id_Cita === mensaje.CitaId);
+          mensaje.Estado_Cita = cita?.Estado_Cita ?? "";
+          mensaje.Fecha_Cita = cita?.Fecha_Propuesta ?? "";
+          if (!cita) mensaje.CitaId = null;
+        });
       contenido = vistas.vistaAkinator(
         mascotas,
         idMascotaChat,
@@ -159,7 +170,9 @@ async function responder(numeroOpcion) {
         Tipo: "resultado",
         Consulta: respuesta,
         Recomendacion: recomendacion,
-        CitaAgendada: false,
+        CitaId: null,
+        Estado_Cita: "",
+        Fecha_Cita: "",
       });
     }
     escribiendo = false;
@@ -217,7 +230,12 @@ document.addEventListener("click", async (evento) => {
         botonEstado.dataset.cita,
         botonEstado.dataset.estado,
       );
-      mostrarAviso("Estado de la cita actualizado.");
+      const avisos = {
+        Aceptada: "Solicitud aceptada; la cita quedó confirmada.",
+        Rechazada: "Solicitud rechazada; el horario quedó disponible.",
+        Completada: "Cita marcada como completada.",
+      };
+      mostrarAviso(avisos[botonEstado.dataset.estado] ?? "Estado actualizado.");
       await renderizar();
     } catch (error) {
       manejarError(error);
@@ -273,8 +291,14 @@ document.addEventListener("click", async (evento) => {
           mostrarAviso("No hay acciones para deshacer.", true);
         } else {
           if (resultado.Tipo_Accion === "Cita") {
-            const resultadoChat = mensajesChat.find((item) => item.Tipo === "resultado");
-            if (resultadoChat) resultadoChat.CitaAgendada = false;
+            const resultadoChat = mensajesChat.find(
+              (item) => item.Tipo === "resultado" && item.CitaId === resultado.Id_Cita,
+            );
+            if (resultadoChat) {
+              resultadoChat.CitaId = null;
+              resultadoChat.Estado_Cita = "";
+              resultadoChat.Fecha_Cita = "";
+            }
           }
           if (resultado.Tipo_Accion === "Expediente" && idCitaExpediente) {
             expediente = await api.obtenerExpediente(idCitaExpediente);
@@ -286,16 +310,6 @@ document.addEventListener("click", async (evento) => {
       }
       case "reiniciar-chat":
         await iniciarChat(idMascotaChat);
-        break;
-      case "agendar-cita":
-        await api.agendarCita();
-        mensajesChat
-          .filter((item) => item.Tipo === "resultado")
-          .forEach((item) => {
-            item.CitaAgendada = true;
-          });
-        mostrarAviso("La cita quedó pendiente de confirmación.");
-        await renderizar();
         break;
       case "editar-expediente":
         vistaActual = "expediente";
@@ -347,6 +361,22 @@ document.addEventListener("submit", async (evento) => {
       await api.crearMascota(datos);
       formulario.reset();
       mostrarAviso("Mascota guardada.");
+    } else if (formulario.dataset.formulario === "solicitud-cita") {
+      const cita = await api.agendarCita(
+        formulario.dataset.consulta,
+        datos.Fecha_Propuesta,
+      );
+      const resultadoChat = mensajesChat.find(
+        (mensaje) =>
+          mensaje.Tipo === "resultado" &&
+          mensaje.Consulta.Id_Consulta_Akinator === cita.Id_Consulta_Akinator,
+      );
+      if (resultadoChat) {
+        resultadoChat.CitaId = cita.Id_Cita;
+        resultadoChat.Estado_Cita = cita.Estado_Cita;
+        resultadoChat.Fecha_Cita = cita.Fecha_Propuesta;
+      }
+      mostrarAviso("Solicitud enviada; está pendiente de aprobación.");
     } else if (formulario.dataset.formulario === "expediente") {
       expediente = await api.guardarExpediente(
         datos.Id_Cita,

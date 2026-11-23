@@ -124,8 +124,8 @@ function quitarNotificacion(idNotificacion) {
   );
 }
 
-function registrarDeshacer(tipoAccion, accion) {
-  accionesDeshacer.push({ Tipo_Accion: tipoAccion, Ejecutar: accion });
+function registrarDeshacer(tipoAccion, accion, datos = {}) {
+  accionesDeshacer.push({ Tipo_Accion: tipoAccion, Ejecutar: accion, ...datos });
 }
 
 function preguntaActual() {
@@ -308,12 +308,50 @@ export function obtenerRecomendacion(idConsulta) {
 }
 
 // luego: fetch("/api/citas", { method: "POST" })
-export function agendarCita() {
+export function agendarCita(idConsulta, fechaPropuesta) {
   return conDemora(() => {
-    if (!usuarioActual) throw new Error("Inicia sesión para agendar una cita.");
-    const consulta = consultasAkinator[consultasAkinator.length - 1];
+    if (!usuarioActual || usuarioActual.Nombre_Rol !== "Dueño") {
+      throw new Error("Inicia sesión como dueño para solicitar una cita.");
+    }
+
+    const consulta = consultasAkinator.find(
+      (item) => item.Id_Consulta_Akinator === Number(idConsulta),
+    );
     if (!consulta || consulta.Email_Usuario !== usuarioActual.Email_Usuario) {
-      throw new Error("Completa el Akinator antes de agendar.");
+      throw new Error("No se encontró un pre-triage tuyo para solicitar la cita.");
+    }
+    if (consulta.Resultado_Prel !== "Grave") {
+      throw new Error("Solo los resultados graves permiten solicitar una cita.");
+    }
+
+    const fecha = new Date(fechaPropuesta);
+    if (!fechaPropuesta || Number.isNaN(fecha.getTime()) || fecha <= new Date()) {
+      throw new Error("Selecciona una fecha y hora futuras.");
+    }
+    if (
+      fecha.getMinutes() % 30 !== 0 ||
+      fecha.getSeconds() !== 0 ||
+      fecha.getMilliseconds() !== 0
+    ) {
+      throw new Error("Selecciona un horario en intervalos de 30 minutos.");
+    }
+
+    const solicitudActiva = citas.some(
+      (cita) =>
+        cita.Id_Consulta_Akinator === consulta.Id_Consulta_Akinator &&
+        ["Pendiente", "Aceptada", "Completada"].includes(cita.Estado_Cita),
+    );
+    if (solicitudActiva) {
+      throw new Error("Este pre-triage ya tiene una solicitud activa.");
+    }
+
+    const horarioOcupado = citas.some(
+      (cita) =>
+        new Date(cita.Fecha_Propuesta).getTime() === fecha.getTime() &&
+        ["Pendiente", "Aceptada"].includes(cita.Estado_Cita),
+    );
+    if (horarioOcupado) {
+      throw new Error("Ese horario ya está solicitado. Elige otro.");
     }
 
     const cita = {
@@ -321,7 +359,9 @@ export function agendarCita() {
       Id_Consulta_Akinator: consulta.Id_Consulta_Akinator,
       Id_Mascota: consulta.Id_Mascota,
       Email_Usuario: usuarioActual.Email_Usuario,
-      Fecha_Propuesta: new Date(Date.now() + 86400000).toISOString(),
+      Resultado_Prel: consulta.Resultado_Prel,
+      Sintomas_Cap: consulta.Sintomas_Cap,
+      Fecha_Propuesta: fecha.toISOString(),
       Estado_Cita: "Pendiente",
     };
     citas.push(cita);
@@ -332,15 +372,19 @@ export function agendarCita() {
         "",
       ),
       agregarNotificacion(
-        "Hay una nueva cita pendiente.",
+        "Hay una nueva solicitud de cita pendiente.",
         "",
         "Veterinario",
       ),
     ];
-    registrarDeshacer("Cita", () => {
-      citas = citas.filter((item) => item.Id_Cita !== cita.Id_Cita);
-      notificacionesCreadas.forEach(quitarNotificacion);
-    });
+    registrarDeshacer(
+      "Cita",
+      () => {
+        citas = citas.filter((item) => item.Id_Cita !== cita.Id_Cita);
+        notificacionesCreadas.forEach(quitarNotificacion);
+      },
+      { Id_Cita: cita.Id_Cita },
+    );
     return cita;
   });
 }
@@ -373,19 +417,9 @@ export function obtenerCitas() {
                   Texto_Accion: "Rechazar",
                   Estilo_Accion: "secundario",
                 },
-                {
-                  Estado_Cita: "Completada",
-                  Texto_Accion: "Completar",
-                  Estilo_Accion: "principal",
-                },
               ]
             : cita.Estado_Cita === "Aceptada"
               ? [
-                  {
-                    Estado_Cita: "Rechazada",
-                    Texto_Accion: "Rechazar",
-                    Estilo_Accion: "secundario",
-                  },
                   {
                     Estado_Cita: "Completada",
                     Texto_Accion: "Completar",
@@ -407,9 +441,19 @@ export function obtenerCitas() {
 // luego: fetch(`/api/citas/${idCita}/estado`, { method: "PATCH" })
 export function cambiarEstadoCita(idCita, estadoCita) {
   return conDemora(() => {
+    if (!usuarioActual || usuarioActual.Nombre_Rol !== "Veterinario") {
+      throw new Error("Solo un veterinario puede actualizar la solicitud.");
+    }
+
     const cita = citas.find((item) => item.Id_Cita === Number(idCita));
-    const estados = ["Pendiente", "Aceptada", "Rechazada", "Completada"];
-    if (!cita || !estados.includes(estadoCita)) {
+    const transicionesPermitidas = {
+      Pendiente: ["Aceptada", "Rechazada"],
+      Aceptada: ["Completada"],
+    };
+    if (
+      !cita ||
+      !transicionesPermitidas[cita.Estado_Cita]?.includes(estadoCita)
+    ) {
       throw new Error("No se pudo actualizar el estado de la cita.");
     }
 
@@ -479,7 +523,11 @@ export function deshacerUltimaAccion() {
     const deshacer = accionesDeshacer.pop();
     if (!deshacer) return { Deshecha: false };
     deshacer.Ejecutar();
-    return { Deshecha: true, Tipo_Accion: deshacer.Tipo_Accion };
+    return {
+      Deshecha: true,
+      Tipo_Accion: deshacer.Tipo_Accion,
+      Id_Cita: deshacer.Id_Cita,
+    };
   });
 }
 

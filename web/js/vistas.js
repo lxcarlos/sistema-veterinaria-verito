@@ -27,6 +27,13 @@ function formatoFecha(fecha) {
   });
 }
 
+function fechaMinimaLocal() {
+  const intervalo = 30 * 60 * 1000;
+  const fecha = new Date(Math.ceil(Date.now() / intervalo) * intervalo);
+  fecha.setMinutes(fecha.getMinutes() - fecha.getTimezoneOffset());
+  return fecha.toISOString().slice(0, 16);
+}
+
 function claseEstado(estado) {
   return estado.toLowerCase().replaceAll(" ", "-");
 }
@@ -254,17 +261,57 @@ function burbuja(mensaje) {
   if (mensaje.Tipo === "resultado") {
     const gravedad = mensaje.Recomendacion.Gravedad;
     const clase = claseEstado(gravedad);
+    const estadosActivos = ["Pendiente", "Aceptada", "Completada"];
+    const solicitudActiva = estadosActivos.includes(mensaje.Estado_Cita);
+    const textoEstadoCita =
+      mensaje.Estado_Cita === "Completada"
+        ? "Cita completada"
+        : `Solicitud ${String(mensaje.Estado_Cita).toLowerCase()}`;
+    const accionesCita =
+      gravedad !== "Grave"
+        ? `<p class="texto-secundario">
+            El calendario de citas solo está disponible para resultados graves.
+          </p>`
+        : solicitudActiva
+          ? `<p>
+              ${escapar(textoEstadoCita)}
+              ${mensaje.Fecha_Cita ? `· ${formatoFecha(mensaje.Fecha_Cita)}` : ""}.
+              ${
+                mensaje.Estado_Cita === "Pendiente"
+                  ? "Espera la respuesta del veterinario."
+                  : ""
+              }
+            </p>
+            <button class="boton-secundario" type="button" data-vista="citas">
+              Ver mis citas
+            </button>`
+          : `<form class="formulario formulario-solicitud-cita"
+              data-formulario="solicitud-cita"
+              data-consulta="${mensaje.Consulta.Id_Consulta_Akinator}">
+              ${
+                mensaje.Estado_Cita === "Rechazada"
+                  ? '<p>El veterinario rechazó el horario. Puedes solicitar otro.</p>'
+                  : ""
+              }
+              <label>Fecha y hora que deseas solicitar
+                <input name="Fecha_Propuesta" type="datetime-local"
+                  min="${fechaMinimaLocal()}" step="1800" required />
+              </label>
+              <button class="boton-principal" type="submit">Solicitar cita</button>
+              <p class="texto-secundario">
+                La solicitud quedará pendiente; solo se confirma cuando el veterinario la acepta.
+              </p>
+            </form>
+            <p class="texto-secundario">
+              Si parece una emergencia, contacta directamente a una clínica; no esperes la respuesta de esta solicitud.
+            </p>`;
     return `
       <div class="fila-chat bot">
         <article class="tarjeta-resultado gravedad-${clase}">
           <p class="sobrelinea">Resultado del pre-triage</p>
           <h2>Gravedad ${escapar(gravedad.toLowerCase())}</h2>
           <p>${escapar(mensaje.Recomendacion.Texto_Recomendacion)}</p>
-          ${
-            mensaje.CitaAgendada
-              ? '<button class="boton-secundario" type="button" disabled>Cita agendada</button>'
-              : '<button class="boton-principal" type="button" data-accion="agendar-cita">Agendar cita</button>'
-          }
+          ${accionesCita}
         </article>
       </div>`;
   }
@@ -363,6 +410,12 @@ export function vistaCitas(citas, esVeterinario) {
                         <h2>${escapar(cita.Nombre_Mascota)}</h2>
                         <p>${escapar(cita.Nombre_Especie)} · ${formatoFecha(cita.Fecha_Propuesta)}</p>
                         ${esVeterinario ? `<p>Dueño: ${escapar(cita.Nombre_Usuario)}</p>` : ""}
+                        ${
+                          esVeterinario
+                            ? `<p>Pre-triage: ${escapar(cita.Resultado_Prel ?? "")}</p>
+                               <p>Síntomas reportados: ${escapar(cita.Sintomas_Cap ?? "")}</p>`
+                            : ""
+                        }
                       </div>
                       <span class="estado estado-${claseEstado(cita.Estado_Cita)}">
                         ${escapar(cita.Estado_Cita)}
