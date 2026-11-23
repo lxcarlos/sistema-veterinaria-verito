@@ -143,61 +143,49 @@ function preguntaActual() {
 }
 
 // luego: fetch("/api/sesion", { method: "POST" })
-export function iniciarSesion(email, contrasena, nombreRol) {
-  return conDemora(() => {
-    const usuario = usuarios.find(
-      (item) =>
-        item.Email_Usuario.toLowerCase() === email.toLowerCase() &&
-        item.Contrasena === contrasena &&
-        item.Nombre_Rol === nombreRol,
-    );
-    if (!usuario) throw new Error("Revisa el correo, la contraseña y el rol.");
-    usuarioActual = usuario;
-    return usuarioPublico(usuarioActual);
+export async function iniciarSesion(email, contrasena, nombreRol) {
+  const res = await fetch("/api/sesion", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password: contrasena, nombreRol }),
   });
+  const datos = await res.json();
+  if (!res.ok) throw new Error(datos.error);
+  return datos;
 }
+
 
 // luego: fetch("/api/usuarios", { method: "POST" })
-export function registrarUsuario(nombre, email, contrasena, nombreRol) {
-  return conDemora(() => {
-    if (!roles.some((rol) => rol.Nombre_Rol === nombreRol)) {
-      throw new Error("Selecciona un rol válido.");
-    }
-    if (usuarios.some((item) => item.Email_Usuario.toLowerCase() === email.toLowerCase())) {
-      throw new Error("Ya existe una cuenta con ese correo.");
-    }
-
-    const usuario = {
-      Id_Usuario: siguienteUsuario++,
-      Nombre_Usuario: nombre,
-      Email_Usuario: email,
-      Contrasena: contrasena,
-      Nombre_Rol: nombreRol,
-    };
-    usuarios.push(usuario);
-    usuarioActual = usuario;
-    return usuarioPublico(usuarioActual);
+export async function registrarUsuario(nombre, email, contrasena, nombreRol) {
+  const res = await fetch("/api/usuarios", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nombre, email, password: contrasena, nombreRol }),
   });
+  const datos = await res.json();
+  if (!res.ok) throw new Error(datos.error);
+  return datos;
 }
+
 
 // luego: fetch("/api/sesion", { method: "DELETE" })
-export function cerrarSesion() {
-  return conDemora(() => {
-    usuarioActual = null;
-    akiActual = null;
-    accionesDeshacer = [];
-    return true;
-  });
+export async function cerrarSesion() {
+  await fetch("/api/sesion", { method: "DELETE" });
+  return true;
 }
+
 
 // luego: fetch("/api/usuarios/actual")
-export function obtenerUsuarioActual() {
-  return conDemora(() => usuarioPublico(usuarioActual));
-}
 
 // luego: fetch("/api/roles")
-export function obtenerRoles() {
-  return conDemora(() => roles);
+export async function obtenerUsuarioActual() {
+  const res = await fetch("/api/usuarios/actual");
+  return await res.json();
+}
+
+export async function obtenerRoles() {
+  const res = await fetch("/api/roles");
+  return await res.json();
 }
 
 // luego: fetch("/api/especies")
@@ -206,15 +194,8 @@ export function obtenerEspecies() {
 }
 
 // luego: fetch("/api/mascotas")
-export function obtenerMascotas() {
-  return conDemora(() => {
-    if (!usuarioActual) throw new Error("Inicia sesión para ver las mascotas.");
-    return mascotas.filter(
-      (mascota) =>
-        usuarioActual.Nombre_Rol === "Veterinario" ||
-        mascota.Email_Usuario === usuarioActual.Email_Usuario,
-    );
-  });
+export async function obtenerMascotas() {
+  return [];
 }
 
 // luego: fetch("/api/mascotas", { method: "POST" })
