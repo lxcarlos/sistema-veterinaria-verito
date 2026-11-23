@@ -161,8 +161,16 @@ export function login(roles, modo, rolSeleccionado) {
         <label>Contraseña
           <input name="Contrasena" type="password"
             autocomplete="${registro ? "new-password" : "current-password"}"
-            minlength="4" required />
+            minlength="${registro ? "8" : "1"}" required />
         </label>
+        ${
+          registro && rolSeleccionado === "Veterinario"
+            ? `<label>Código de invitación para veterinarios
+                <input name="Codigo_Veterinario" type="password"
+                  autocomplete="off" required />
+              </label>`
+            : ""
+        }
         <button class="boton-principal" type="submit">
           ${registro ? "Crear cuenta" : "Iniciar sesión"}
         </button>
@@ -432,10 +440,14 @@ export function vistaCitas(citas, esVeterinario) {
                                   ${escapar(accion.Texto_Accion)}
                                 </button>`,
                             ).join("")}
-                            <button class="boton-texto" type="button"
-                              data-accion="editar-expediente" data-cita="${cita.Id_Cita}">
-                              Expediente
-                            </button>
+                            ${
+                              ["Aceptada", "Completada"].includes(cita.Estado_Cita)
+                                ? `<button class="boton-texto" type="button"
+                                    data-accion="editar-expediente" data-cita="${cita.Id_Cita}">
+                                    Expediente
+                                  </button>`
+                                : ""
+                            }
                           </div>`
                         : ""
                     }

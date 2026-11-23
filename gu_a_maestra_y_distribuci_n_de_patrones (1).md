@@ -119,7 +119,7 @@ Una señal que parezca una emergencia, como dificultad para respirar, debe mostr
 ### Regla y flujo de citas
 
 1. Solo un resultado **grave** habilita solicitar una cita desde la plataforma. Los resultados leves o moderados muestran su recomendación, pero no habilitan ese flujo de cita.
-2. El cliente propone una fecha y hora futuras, en intervalos de 30 minutos, con el selector de calendario y envía una solicitud. En ese momento queda **Pendiente**; todavía no es una cita confirmada. En esta primera versión no se configura un horario laboral del veterinario: se evita que haya solicitudes pendientes o aceptadas para la misma hora y el veterinario confirma la disponibilidad al aceptar o rechazar.
+2. El cliente propone una fecha y hora futuras, en intervalos de 30 minutos, con el selector de calendario y envía una solicitud. En ese momento queda **Pendiente**; todavía no es una cita confirmada. La primera versión asigna las solicitudes al veterinario registrado con el ID más bajo. No se configura un horario laboral: se evita que haya solicitudes pendientes o aceptadas para la misma hora y el veterinario confirma la disponibilidad al aceptar o rechazar.
 3. El veterinario revisa las solicitudes pendientes y puede **Aceptar** o **Rechazar**. Un pre-triage puede tener como máximo una solicitud pendiente, aceptada o completada; si se rechaza, el cliente puede solicitar otro horario.
 4. Al aceptar, la solicitud pasa a **Aceptada** y el horario queda confirmado. Al rechazar, pasa a **Rechazada** y ese horario puede solicitarse de nuevo.
 5. La plataforma debe mostrar al cliente el estado actualizado. La decisión de permitir citas únicamente para casos graves y los umbrales deben validarse con un veterinario; esta regla nunca debe impedir que alguien contacte directamente a una clínica.
@@ -133,7 +133,7 @@ Una señal que parezca una emergencia, como dificultad para respirar, debe mostr
 - Una solicitud aceptada confirma el horario; una rechazada libera el horario.
 - El resultado se comunica como pre-triage, no como diagnóstico médico.
 
-Este flujo de calendario es una demostración del lado del cliente: las solicitudes se guardan en memoria del navegador y no se comparten entre dispositivos ni sobreviven a una recarga. Para el uso real, estos estados y transiciones deben implementarse en el servidor y persistirse en SQL Server.
+El resultado del pre-triage y las citas se guardan en SQL Server. La sesión, el pre-triage que todavía está en curso y el historial de deshacer viven en memoria del servidor; se pierden si el servidor se reinicia. El calendario recibe una fecha y hora propuesta y evita solicitudes pendientes o aceptadas duplicadas, pero todavía no publica los horarios laborales del veterinario.
 
 ---
 
@@ -147,5 +147,7 @@ Este flujo de calendario es una demostración del lado del cliente: las solicitu
    ```bash
    npm install
    ```
-3. **Configurar base de datos:** Ejecutar el script SQL proporcionado en `BaseDeDatossql.sql` en SQL Server Management Studio.
-4. **Desarrollar por ramas:** Cada integrante crea su propia rama en Git (`git checkout -b feature/patron-state`, etc.) para trabajar su módulo de forma limpia y segura.
+3. **Configurar la base de datos:** Ejecutar `BaseDeDatos/BaseDeDatossql.sql` en SQL Server Management Studio.
+4. **Configurar variables locales:** Copiar `.env.example` a `.env` y completar el usuario y la contraseña de SQL Server. Define también un código de invitación privado para crear cuentas veterinarias. No subir `.env` a GitHub.
+5. **Iniciar la plataforma:** Desde la raíz del proyecto ejecutar `npm run dev` y abrir `http://localhost:3001`.
+6. **Compartir cambios:** El equipo trabaja únicamente en `main`. Antes de modificar, ejecutar `git pull origin main`; después de hacer commit, subir con `git push origin main`.

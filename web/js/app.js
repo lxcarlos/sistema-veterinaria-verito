@@ -354,6 +354,7 @@ document.addEventListener("submit", async (evento) => {
         datos.Email_Usuario,
         datos.Contrasena,
         rolSeleccionado,
+        datos.Codigo_Veterinario,
       );
       vistaActual = usuario.Nombre_Rol === "Veterinario" ? "citas" : "mascotas";
       mostrarAviso("Cuenta creada.");
