@@ -1,4 +1,6 @@
 export interface Comando {
-  ejecutar(): void;
-  deshacer(): void;
+  readonly tipoAccion: "Mascota" | "Cita" | "Estado_Cita";
+  readonly idElemento: number | null;
+  ejecutar(): Promise<void>;
+  deshacer(): Promise<void>;
 }

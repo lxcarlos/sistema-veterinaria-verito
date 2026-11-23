@@ -40,22 +40,11 @@ function claseEstado(estado) {
 
 export function encabezado(
   usuario,
-  modoOscuro,
   perfilAbierto,
   notificacionesAbiertas,
   notificaciones,
 ) {
-  const controlTema = `
-    <div class="control-tema">
-      <span class="etiqueta-tema">Modo oscuro</span>
-      <button class="interruptor" type="button" role="switch"
-        aria-checked="${modoOscuro}" aria-label="Cambiar modo oscuro"
-        data-accion="tema">
-        <span></span>
-      </button>
-    </div>`;
-
-  if (!usuario) return controlTema;
+  if (!usuario) return "";
 
   const listaNotificaciones = notificacionesAbiertas
     ? `<div class="menu-desplegable menu-notificaciones">
@@ -75,7 +64,6 @@ export function encabezado(
         }
       </div>`
     : "";
-
   const menuPerfil = perfilAbierto
     ? `<div class="menu-desplegable menu-perfil">
         <strong>${escapar(usuario.Nombre_Usuario)}</strong>
@@ -87,16 +75,15 @@ export function encabezado(
     : "";
 
   return `
-    ${controlTema}
     <button class="boton-icono" type="button" aria-label="Deshacer última acción"
       title="Deshacer última acción" data-accion="deshacer">↶</button>
     <div class="contenedor-desplegable">
       <button class="boton-icono campana" type="button"
         aria-label="Notificaciones" aria-expanded="${notificacionesAbiertas}"
-          data-accion="notificaciones">
-          <svg class="icono-campana" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
-          </svg>
+        data-accion="notificaciones">
+        <svg class="icono-campana" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
+        </svg>
         ${notificaciones.length ? '<span class="punto-notificacion"></span>' : ""}
       </button>
       ${listaNotificaciones}
@@ -166,8 +153,7 @@ export function login(roles, modo, rolSeleccionado) {
         ${
           registro && rolSeleccionado === "Veterinario"
             ? `<label>Código de invitación para veterinarios
-                <input name="Codigo_Veterinario" type="password"
-                  autocomplete="off" required />
+                <input name="Codigo_Veterinario" type="password" autocomplete="off" required />
               </label>`
             : ""
         }
@@ -181,16 +167,12 @@ export function login(roles, modo, rolSeleccionado) {
 export function menu(rol, vistaActual) {
   const enlaces =
     rol === "Veterinario"
-      ? [
-          { vista: "citas", texto: "Citas" },
-          { vista: "expediente", texto: "Expedientes" },
-        ]
+      ? [{ vista: "citas", texto: "Citas" }]
       : [
           { vista: "mascotas", texto: "Mis mascotas" },
-          { vista: "akinator", texto: "Pre-triage" },
+          { vista: "agendar", texto: "Solicitar cita" },
           { vista: "citas", texto: "Mis citas" },
         ];
-
   return `
     <nav class="menu-principal" aria-label="Navegación principal">
       ${enlaces
@@ -211,7 +193,7 @@ export function vistaMascotas(mascotas, especies) {
     <section class="encabezado-vista">
       <p class="sobrelinea">Tu familia</p>
       <h1>Mis mascotas</h1>
-      <p class="texto-secundario">Toda su información, en un solo lugar.</p>
+      <p class="texto-secundario">Registra tus mascotas y solicita sus citas.</p>
     </section>
     <section class="rejilla-mascotas">
       ${
@@ -237,7 +219,7 @@ export function vistaMascotas(mascotas, especies) {
       <h2>Agregar mascota</h2>
       <form class="formulario formulario-en-linea" data-formulario="mascota">
         <label>Nombre
-          <input name="Nombre_Mascota" required maxlength="60" />
+          <input name="Nombre_Mascota" required maxlength="50" />
         </label>
         <label>Especie
           <select name="Nombre_Especie" required>
@@ -261,138 +243,52 @@ export function vistaMascotas(mascotas, especies) {
     </section>`;
 }
 
-function burbuja(mensaje) {
-  if (mensaje.Tipo === "usuario") {
-    return `<div class="fila-chat usuario"><div class="burbuja">${escapar(mensaje.Texto)}</div></div>`;
-  }
-
-  if (mensaje.Tipo === "resultado") {
-    const gravedad = mensaje.Recomendacion.Gravedad;
-    const clase = claseEstado(gravedad);
-    const estadosActivos = ["Pendiente", "Aceptada", "Completada"];
-    const solicitudActiva = estadosActivos.includes(mensaje.Estado_Cita);
-    const textoEstadoCita =
-      mensaje.Estado_Cita === "Completada"
-        ? "Cita completada"
-        : `Solicitud ${String(mensaje.Estado_Cita).toLowerCase()}`;
-    const accionesCita =
-      gravedad !== "Grave"
-        ? `<p class="texto-secundario">
-            El calendario de citas solo está disponible para resultados graves.
-          </p>`
-        : solicitudActiva
-          ? `<p>
-              ${escapar(textoEstadoCita)}
-              ${mensaje.Fecha_Cita ? `· ${formatoFecha(mensaje.Fecha_Cita)}` : ""}.
-              ${
-                mensaje.Estado_Cita === "Pendiente"
-                  ? "Espera la respuesta del veterinario."
-                  : ""
-              }
-            </p>
-            <button class="boton-secundario" type="button" data-vista="citas">
-              Ver mis citas
-            </button>`
-          : `<form class="formulario formulario-solicitud-cita"
-              data-formulario="solicitud-cita"
-              data-consulta="${mensaje.Consulta.Id_Consulta_Akinator}">
-              ${
-                mensaje.Estado_Cita === "Rechazada"
-                  ? '<p>El veterinario rechazó el horario. Puedes solicitar otro.</p>'
-                  : ""
-              }
-              <label>Fecha y hora que deseas solicitar
+export function vistaAgendarCita(mascotas, tiposCita) {
+  return `
+    <section class="encabezado-vista">
+      <p class="sobrelinea">Agenda</p>
+      <h1>Solicitar cita</h1>
+      <p class="texto-secundario">Elige una mascota, el tipo de cita y un horario.</p>
+    </section>
+    <section class="tarjeta tarjeta-formulario-cita">
+      ${
+        mascotas.length
+          ? `<form class="formulario" data-formulario="agendar-cita">
+              <label>Mascota
+                <select name="Id_Mascota" required>
+                  <option value="">Selecciona una mascota</option>
+                  ${mascotas
+                    .map(
+                      (mascota) =>
+                        `<option value="${mascota.Id_Mascota}">${escapar(mascota.Nombre_Mascota)} · ${escapar(mascota.Nombre_Especie)}</option>`,
+                    )
+                    .join("")}
+                </select>
+              </label>
+              <label>Tipo de cita
+                <select name="Tipo_Cita" required>
+                  <option value="">Selecciona el tipo de cita</option>
+                  ${tiposCita
+                    .map(
+                      (tipo) =>
+                        `<option value="${escapar(tipo)}">${escapar(tipo)}</option>`,
+                    )
+                    .join("")}
+                </select>
+              </label>
+              <label>Fecha y hora
                 <input name="Fecha_Propuesta" type="datetime-local"
                   min="${fechaMinimaLocal()}" step="1800" required />
               </label>
               <button class="boton-principal" type="submit">Solicitar cita</button>
               <p class="texto-secundario">
-                La solicitud quedará pendiente; solo se confirma cuando el veterinario la acepta.
+                La cita queda pendiente hasta que un veterinario responda.
               </p>
-            </form>
-            <p class="texto-secundario">
-              Si parece una emergencia, contacta directamente a una clínica; no esperes la respuesta de esta solicitud.
-            </p>`;
-    return `
-      <div class="fila-chat bot">
-        <article class="tarjeta-resultado gravedad-${clase}">
-          <p class="sobrelinea">Resultado del pre-triage</p>
-          <h2>Gravedad ${escapar(gravedad.toLowerCase())}</h2>
-          <p>${escapar(mensaje.Recomendacion.Texto_Recomendacion)}</p>
-          ${accionesCita}
-        </article>
-      </div>`;
-  }
-
-  return `
-    <div class="fila-chat bot">
-      <div class="burbuja">
-        ${escapar(mensaje.Texto)}
-        ${
-          mensaje.Opciones?.length
-            ? `<div class="opciones-chat">
-                ${mensaje.Opciones.map(
-                  (opcion) => `
-                    <button class="chip-opcion" type="button"
-                      data-opcion="${opcion.Numero_Opcion}">
-                      ${escapar(opcion.Texto_Opcion)}
-                    </button>`,
-                ).join("")}
-              </div>`
-            : ""
-        }
-      </div>
-    </div>`;
-}
-
-export function vistaAkinator(
-  mascotas,
-  idMascota,
-  mensajes,
-  progreso,
-  escribiendo,
-) {
-  return `
-    <section class="encabezado-vista">
-      <p class="sobrelinea">Orientación inicial</p>
-      <h1>Pre-triage</h1>
-      <p class="texto-secundario">Responde con las opciones para orientar la consulta.</p>
-    </section>
-    <section class="tarjeta chat-tarjeta">
-      <label class="selector-mascota">¿Para cuál mascota es la consulta?
-        <select data-mascota-chat>
-          <option value="">Selecciona una mascota</option>
-          ${mascotas
-            .map(
-              (mascota) => `
-                <option value="${mascota.Id_Mascota}"
-                  ${Number(idMascota) === mascota.Id_Mascota ? "selected" : ""}>
-                  ${escapar(mascota.Nombre_Mascota)} · ${escapar(mascota.Nombre_Especie)}
-                </option>`,
-            )
-            .join("")}
-        </select>
-      </label>
-      <div class="progreso-chat" aria-label="Progreso del pre-triage">
-        <span style="width: ${progreso}%"></span>
-      </div>
-      <div class="mensajes-chat" id="mensajes-chat" aria-live="polite">
-        ${
-          mensajes.length
-            ? mensajes.map(burbuja).join("")
-            : '<p class="texto-secundario mensaje-inicial">Elige una mascota para comenzar.</p>'
-        }
-        ${
-          escribiendo
-            ? '<div class="fila-chat bot"><div class="burbuja indicador-escribiendo" aria-label="Verito está escribiendo"><span></span><span></span><span></span></div></div>'
-            : ""
-        }
-      </div>
-      ${
-        idMascota
-          ? `<button class="boton-texto reiniciar-chat" type="button"
-              data-accion="reiniciar-chat">Reiniciar conversación</button>`
-          : ""
+            </form>`
+          : `<p class="texto-secundario">Primero agrega una mascota para solicitar una cita.</p>
+             <button class="boton-secundario" type="button" data-vista="mascotas">
+               Ir a mis mascotas
+             </button>`
       }
     </section>`;
 }
@@ -403,7 +299,7 @@ export function vistaCitas(citas, esVeterinario) {
       <p class="sobrelinea">${esVeterinario ? "Agenda clínica" : "Seguimiento"}</p>
       <h1>${esVeterinario ? "Citas" : "Mis citas"}</h1>
       <p class="texto-secundario">
-        ${esVeterinario ? "Revisa las solicitudes y actualiza su estado." : "Consulta el estado de tus citas."}
+        ${esVeterinario ? "Revisa las solicitudes y actualiza su estado." : "Consulta tus solicitudes de cita."}
       </p>
     </section>
     <section class="lista-citas">
@@ -417,13 +313,9 @@ export function vistaCitas(citas, esVeterinario) {
                       <div>
                         <h2>${escapar(cita.Nombre_Mascota)}</h2>
                         <p>${escapar(cita.Nombre_Especie)} · ${formatoFecha(cita.Fecha_Propuesta)}</p>
+                        <p>${escapar(cita.Tipo_Cita)}</p>
+                        <p>${escapar(cita.Texto_Recomendacion)}</p>
                         ${esVeterinario ? `<p>Dueño: ${escapar(cita.Nombre_Usuario)}</p>` : ""}
-                        ${
-                          esVeterinario
-                            ? `<p>Pre-triage: ${escapar(cita.Resultado_Prel ?? "")}</p>
-                               <p>Síntomas reportados: ${escapar(cita.Sintomas_Cap ?? "")}</p>`
-                            : ""
-                        }
                       </div>
                       <span class="estado estado-${claseEstado(cita.Estado_Cita)}">
                         ${escapar(cita.Estado_Cita)}
@@ -440,14 +332,6 @@ export function vistaCitas(citas, esVeterinario) {
                                   ${escapar(accion.Texto_Accion)}
                                 </button>`,
                             ).join("")}
-                            ${
-                              ["Aceptada", "Completada"].includes(cita.Estado_Cita)
-                                ? `<button class="boton-texto" type="button"
-                                    data-accion="editar-expediente" data-cita="${cita.Id_Cita}">
-                                    Expediente
-                                  </button>`
-                                : ""
-                            }
                           </div>`
                         : ""
                     }
@@ -455,50 +339,6 @@ export function vistaCitas(citas, esVeterinario) {
               )
               .join("")
           : '<p class="vacio">Todavía no hay citas para mostrar.</p>'
-      }
-    </section>`;
-}
-
-export function vistaExpediente(citas, idCita, expediente) {
-  const cita = citas.find((item) => item.Id_Cita === Number(idCita));
-  return `
-    <section class="encabezado-vista">
-      <p class="sobrelinea">Atención veterinaria</p>
-      <h1>Expediente médico</h1>
-      <p class="texto-secundario">Guarda el diagnóstico y las instrucciones de atención.</p>
-    </section>
-    <section class="tarjeta tarjeta-expediente">
-      <label>Selecciona una cita
-        <select data-cita-expediente>
-          <option value="">Selecciona una cita</option>
-          ${citas
-            .map(
-              (item) => `
-                <option value="${item.Id_Cita}"
-                  ${Number(idCita) === item.Id_Cita ? "selected" : ""}>
-                  ${escapar(item.Nombre_Mascota)} · ${formatoFecha(item.Fecha_Propuesta)}
-                </option>`,
-            )
-            .join("")}
-        </select>
-      </label>
-      ${
-        cita && expediente
-          ? `<div class="resumen-cita">
-              <strong>${escapar(cita.Nombre_Mascota)}</strong>
-              <span>${escapar(cita.Nombre_Especie)} · ${escapar(cita.Nombre_Usuario)}</span>
-            </div>
-            <form class="formulario" data-formulario="expediente">
-              <input type="hidden" name="Id_Cita" value="${cita.Id_Cita}" />
-              <label>Diagnóstico
-                <textarea name="Diagnostico_Medico" rows="4" required>${escapar(expediente.Diagnostico_Medico)}</textarea>
-              </label>
-              <label>Receta e instrucciones
-                <textarea name="Receta_Instrucciones" rows="4" required>${escapar(expediente.Receta_Instrucciones)}</textarea>
-              </label>
-              <button class="boton-principal" type="submit">Guardar expediente</button>
-            </form>`
-          : '<p class="texto-secundario">Elige una cita para consultar o guardar su expediente.</p>'
       }
     </section>`;
 }

@@ -63,6 +63,10 @@ export function obtenerEspecies() {
   return solicitar("/api/especies");
 }
 
+export function obtenerTiposCita() {
+  return solicitar("/api/tipos-cita");
+}
+
 export function obtenerMascotas() {
   return solicitar("/api/mascotas");
 }
@@ -71,31 +75,14 @@ export function crearMascota(datos) {
   return solicitar("/api/mascotas", "POST", datos);
 }
 
-export function iniciarAkinator(idMascota) {
-  return solicitar("/api/akinator/iniciar", "POST", {
-    Id_Mascota: Number(idMascota),
-  });
-}
-
-export function responderAkinator(numeroOpcion) {
-  return solicitar("/api/akinator/responder", "POST", {
-    Numero_Opcion: Number(numeroOpcion),
-  });
-}
-
-export function obtenerRecomendacion(idConsulta) {
-  return solicitar(
-    `/api/recomendaciones/${encodeURIComponent(idConsulta)}`,
-  );
-}
-
-export function agendarCita(idConsulta, fechaPropuesta) {
-  const fecha = new Date(fechaPropuesta);
+export function agendarCita(datos) {
+  const fecha = new Date(datos.Fecha_Propuesta);
   if (Number.isNaN(fecha.getTime())) {
     throw new Error("Selecciona una fecha y hora válidas.");
   }
   return solicitar("/api/citas", "POST", {
-    Id_Consulta_Akinator: Number(idConsulta),
+    Id_Mascota: Number(datos.Id_Mascota),
+    Tipo_Cita: datos.Tipo_Cita,
     Fecha_Propuesta: fecha.toISOString(),
   });
 }
@@ -109,23 +96,6 @@ export function cambiarEstadoCita(idCita, estadoCita) {
     `/api/citas/${encodeURIComponent(idCita)}/estado`,
     "PATCH",
     { Estado_Cita: estadoCita },
-  );
-}
-
-export function obtenerExpediente(idCita) {
-  return solicitar(
-    `/api/citas/${encodeURIComponent(idCita)}/expediente`,
-  );
-}
-
-export function guardarExpediente(idCita, diagnostico, receta) {
-  return solicitar(
-    `/api/citas/${encodeURIComponent(idCita)}/expediente`,
-    "PUT",
-    {
-      Diagnostico_Medico: diagnostico,
-      Receta_Instrucciones: receta,
-    },
   );
 }
 

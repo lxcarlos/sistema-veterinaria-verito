@@ -1,9 +1,11 @@
 import { Observador } from "./Observador";
 
 export class NotificacionDueno implements Observador {
-    constructor( private nombre: string ) {}
+  public constructor(
+    private readonly registrar: (mensaje: string) => void,
+  ) {}
 
-    actualizar(mensaje: string): void {
-        console.log(`[Dueño ${this.nombre}] recibio: ${mensaje}`);
-    }
+  public actualizar(mensaje: string): void {
+    this.registrar(mensaje);
+  }
 }

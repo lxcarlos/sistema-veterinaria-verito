@@ -1,20 +1,26 @@
 import type { Comando } from "./Comando";
 
 export class GestorComandos {
-  private historial: Comando[] = [];
+  private readonly historiales = new Map<string, Comando[]>();
 
-  public ejecutar(comando: Comando): void {
-    comando.ejecutar();
-    this.historial.push(comando);
+  public async ejecutar(token: string, comando: Comando): Promise<void> {
+    await comando.ejecutar();
+    const historial = this.historiales.get(token) ?? [];
+    historial.push(comando);
+    this.historiales.set(token, historial);
   }
 
-  public deshacerUltimo(): void {
-    const comando = this.historial[this.historial.length - 1];
-    if (comando === undefined) {
-      throw new Error("No hay comandos para deshacer.");
-    }
+  public async deshacerUltimo(token: string): Promise<Comando | undefined> {
+    const historial = this.historiales.get(token);
+    const comando = historial?.[historial.length - 1];
+    if (!comando || !historial) return undefined;
 
-    comando.deshacer();
-    this.historial.pop();
+    await comando.deshacer();
+    historial.pop();
+    return comando;
+  }
+
+  public limpiar(token: string): void {
+    this.historiales.delete(token);
   }
 }

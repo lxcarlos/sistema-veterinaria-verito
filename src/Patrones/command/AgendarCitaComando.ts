@@ -1,20 +1,22 @@
 import type { Comando } from "./Comando";
 
 export class AgendarCitaComando implements Comando {
+  public readonly tipoAccion = "Cita" as const;
+  public idElemento: number | null = null;
+
   public constructor(
-    private citas: string[],
-    private textoCita: string,
+    private readonly crear: () => Promise<number>,
+    private readonly eliminar: (idCita: number) => Promise<void>,
   ) {}
 
-  public ejecutar(): void {
-    this.citas.push(this.textoCita);
+  public async ejecutar(): Promise<void> {
+    this.idElemento = await this.crear();
   }
 
-  public deshacer(): void {
-    const indice = this.citas.lastIndexOf(this.textoCita);
-    if (indice === -1) {
-      throw new Error("No se encontró la cita para deshacer.");
+  public async deshacer(): Promise<void> {
+    if (this.idElemento === null) {
+      throw new Error("No se puede deshacer una cita que no fue creada.");
     }
-    this.citas.splice(indice, 1);
+    await this.eliminar(this.idElemento);
   }
 }

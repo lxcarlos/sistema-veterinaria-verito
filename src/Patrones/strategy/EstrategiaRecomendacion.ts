@@ -1,3 +1,6 @@
+export type TipoCita = "Consulta general" | "Vacunación" | "Seguimiento";
+
 export interface EstrategiaRecomendacion {
-  recomendar(especie: string, peso: number, puntos: number): string;
+  readonly tipo: TipoCita;
+  recomendar(): string;
 }

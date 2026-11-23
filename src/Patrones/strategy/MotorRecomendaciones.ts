@@ -1,27 +1,25 @@
 import type { EstrategiaRecomendacion } from "./EstrategiaRecomendacion";
-import { RecomendacionGrave } from "./RecomendacionGrave";
-import { RecomendacionLeve } from "./RecomendacionLeve";
-import { RecomendacionModerada } from "./RecomendacionModerada";
+import type { TipoCita } from "./EstrategiaRecomendacion";
+import { RecomendacionConsultaGeneral } from "./RecomendacionConsultaGeneral";
+import { RecomendacionSeguimiento } from "./RecomendacionSeguimiento";
+import { RecomendacionVacunacion } from "./RecomendacionVacunacion";
 
 export class MotorRecomendaciones {
-  private estrategia: EstrategiaRecomendacion = new RecomendacionLeve();
+  private readonly estrategias = [
+    new RecomendacionConsultaGeneral(),
+    new RecomendacionVacunacion(),
+    new RecomendacionSeguimiento(),
+  ];
 
-  public cambiarEstrategia(estrategia: EstrategiaRecomendacion): void {
-    this.estrategia = estrategia;
+  public tiposDisponibles(): TipoCita[] {
+    return this.estrategias.map((estrategia) => estrategia.tipo);
   }
 
-  private elegirEstrategia(puntos: number): EstrategiaRecomendacion {
-    if (puntos <= 3) {
-      return new RecomendacionLeve();
+  public recomendar(tipo: string): string {
+    const estrategia = this.estrategias.find((item) => item.tipo === tipo);
+    if (!estrategia) {
+      throw new Error("El tipo de cita seleccionado no es válido.");
     }
-    if (puntos <= 6) {
-      return new RecomendacionModerada();
-    }
-    return new RecomendacionGrave();
-  }
-
-  public recomendar(especie: string, peso: number, puntos: number): string {
-    this.cambiarEstrategia(this.elegirEstrategia(puntos));
-    return this.estrategia.recomendar(especie, peso, puntos);
+    return estrategia.recomendar();
   }
 }
