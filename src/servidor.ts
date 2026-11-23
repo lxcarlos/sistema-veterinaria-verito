@@ -16,7 +16,9 @@ import { EstadoCompletada } from "./Patrones/state/EstadoCompletada";
 import { EstadoPendiente } from "./Patrones/state/EstadoPendiente";
 import { EstadoRechazada } from "./Patrones/state/EstadoRechazada";
 import type { EstadoCita } from "./Patrones/state/EstadoCita";
+import { ArbolSintomas } from "./Patrones/state/ArbolSintomas";
 import { MotorRecomendaciones } from "./Patrones/strategy/MotorRecomendaciones";
+import { MotorOrientacionSintomas } from "./Patrones/strategy/MotorOrientacionSintomas";
 
 type Rol = "Dueño" | "Veterinario";
 
@@ -34,6 +36,7 @@ interface Sesion {
 
 interface CitaDb {
   Id_Cita: number;
+  Id_Consulta_Akinator: number | null;
   Id_Mascota: number;
   Nombre_Mascota: string;
   Nombre_Especie: string;
@@ -41,8 +44,15 @@ interface CitaDb {
   Email_Usuario: string;
   Tipo_Cita: string;
   Texto_Recomendacion: string;
+  Resultado_Prel: string | null;
+  Sintomas_Cap: string | null;
   Fecha_Propuesta: Date;
   Estado_Cita: string;
+}
+
+interface EvaluacionActiva {
+  Id_Mascota: number;
+  Arbol: ArbolSintomas;
 }
 
 interface NotificacionWeb {
@@ -64,8 +74,10 @@ const app = express();
 const db = ConexionBaseDatos.getInstancia();
 const comandos = new GestorComandos();
 const motorRecomendaciones = new MotorRecomendaciones();
+const motorOrientacionSintomas = new MotorOrientacionSintomas();
 const cookieSesion = "verito_session";
 const sesiones = new Map<string, UsuarioPublico>();
+const evaluacionesActivas = new Map<string, EvaluacionActiva>();
 const notificaciones = new Map<number, NotificacionWeb[]>();
 let siguienteNotificacion = 1;
 
@@ -242,6 +254,7 @@ async function consultarCitas(sesion: Sesion): Promise<
   const filas = await db.consultar<CitaDb>(
     `SELECT
        c.PK_ID_Cita AS Id_Cita,
+       c.FK_ID_Consulta AS Id_Consulta_Akinator,
        m.PK_ID_Mascota AS Id_Mascota,
        m.Nombre_Mascota AS Nombre_Mascota,
        e.Nombre_Especie AS Nombre_Especie,
@@ -249,11 +262,14 @@ async function consultarCitas(sesion: Sesion): Promise<
        dueno.Email_Usuario AS Email_Usuario,
        c.Tipo_Cita AS Tipo_Cita,
        c.Fecha_Propuesta AS Fecha_Propuesta,
-       c.Estado_Cita AS Estado_Cita
+       c.Estado_Cita AS Estado_Cita,
+       q.Resultado_Prel AS Resultado_Prel,
+       q.Sintomas_Cap AS Sintomas_Cap
      FROM Citas c
      INNER JOIN Mascotas m ON m.PK_ID_Mascota = c.FK_ID_Mascota
      INNER JOIN Especies e ON e.PK_ID_Especie = m.FK_ID_Especie
      INNER JOIN Usuarios dueno ON dueno.PK_ID_Usuario = m.FK_ID_Usuario
+     LEFT JOIN Consultas_Akinator q ON q.PK_ID_Consulta = c.FK_ID_Consulta
      WHERE (@esVeterinario = 1 AND c.FK_ID_Usuario = @idUsuario)
         OR (@esVeterinario = 0 AND m.FK_ID_Usuario = @idUsuario)
      ORDER BY c.Fecha_Propuesta DESC`,
@@ -267,6 +283,21 @@ async function consultarCitas(sesion: Sesion): Promise<
     Texto_Recomendacion: motorRecomendaciones.recomendar(cita.Tipo_Cita),
     Acciones_Disponibles: estadoCita(cita.Estado_Cita).accionesDisponibles(),
   }));
+}
+
+function serializarPregunta(arbol: ArbolSintomas) {
+  const pregunta = arbol.obtenerPregunta();
+  if (!pregunta) throw errorHttp(400, "El árbol de síntomas ya terminó.");
+  return {
+    Tipo_Respuesta: "Pregunta",
+    Numero_Pregunta: pregunta.numero,
+    Total_Preguntas: ArbolSintomas.totalPreguntas,
+    Pregunta: pregunta.texto,
+    Opciones: pregunta.opciones.map((opcion, indice) => ({
+      Numero_Opcion: indice + 1,
+      Texto_Opcion: opcion.texto,
+    })),
+  };
 }
 
 app.get("/api/roles", async (_req, res) => {
@@ -289,6 +320,82 @@ app.get("/api/especies", async (_req, res) => {
 
 app.get("/api/tipos-cita", (_req, res) => {
   res.json(motorRecomendaciones.tiposDisponibles());
+});
+
+app.post("/api/akinator/iniciar", async (req, res) => {
+  const sesion = exigirSesion(req);
+  exigirRol(sesion, "Dueño");
+  const idMascota = enteroPositivo(req.body?.Id_Mascota, "La mascota");
+  const mascotas = await db.consultar<{ Id_Mascota: number }>(
+    `SELECT PK_ID_Mascota AS Id_Mascota
+     FROM Mascotas
+     WHERE PK_ID_Mascota = @idMascota
+       AND FK_ID_Usuario = @idUsuario`,
+    { idMascota, idUsuario: sesion.usuario.Id_Usuario },
+  );
+  if (!mascotas[0]) {
+    throw errorHttp(404, "No se encontró una mascota tuya con ese ID.");
+  }
+
+  const arbol = new ArbolSintomas();
+  evaluacionesActivas.set(sesion.token, { Id_Mascota: idMascota, Arbol: arbol });
+  res.json(serializarPregunta(arbol));
+});
+
+app.post("/api/akinator/responder", async (req, res) => {
+  const sesion = exigirSesion(req);
+  exigirRol(sesion, "Dueño");
+  const evaluacion = evaluacionesActivas.get(sesion.token);
+  if (!evaluacion) {
+    throw errorHttp(400, "Inicia primero el árbol de síntomas.");
+  }
+
+  const numeroOpcion = Number(req.body?.Numero_Opcion);
+  if (!Number.isInteger(numeroOpcion)) {
+    throw errorHttp(400, "Selecciona una opción de respuesta válida.");
+  }
+  try {
+    evaluacion.Arbol.responder(numeroOpcion);
+  } catch (error) {
+    if (error instanceof RangeError) throw errorHttp(400, error.message);
+    throw error;
+  }
+
+  const pregunta = evaluacion.Arbol.obtenerPregunta();
+  if (pregunta) {
+    res.json(serializarPregunta(evaluacion.Arbol));
+    return;
+  }
+
+  const orientacion = motorOrientacionSintomas.evaluar(
+    evaluacion.Arbol.obtenerPuntos(),
+  );
+  const sintomas = evaluacion.Arbol.obtenerRespuestas().join(", ");
+  const consultas = await db.consultar<{ Id_Consulta_Akinator: number }>(
+    `INSERT INTO Consultas_Akinator
+       (FK_ID_Mascota, Sintomas_Cap, Resultado_Prel)
+     OUTPUT INSERTED.PK_ID_Consulta AS Id_Consulta_Akinator
+     VALUES (@idMascota, @sintomas, @resultado)`,
+    {
+      idMascota: evaluacion.Id_Mascota,
+      sintomas,
+      resultado: orientacion.Gravedad,
+    },
+  );
+  const consulta = consultas[0];
+  if (!consulta) throw new Error("No se pudo guardar el resultado del árbol.");
+
+  evaluacionesActivas.delete(sesion.token);
+  res.json({
+    Tipo_Respuesta: "Resultado",
+    Id_Consulta_Akinator: consulta.Id_Consulta_Akinator,
+    Id_Mascota: evaluacion.Id_Mascota,
+    Sintomas_Cap: sintomas,
+    Resultado_Prel: orientacion.Gravedad,
+    Puntos_Akinator: evaluacion.Arbol.obtenerPuntos(),
+    Texto_Recomendacion: orientacion.Texto_Recomendacion,
+    Fecha_Consulta: new Date().toISOString(),
+  });
 });
 
 app.post("/api/usuarios", async (req, res) => {
@@ -417,6 +524,7 @@ app.delete("/api/sesion", (req, res) => {
   const sesion = leerSesion(req);
   if (sesion) {
     sesiones.delete(sesion.token);
+    evaluacionesActivas.delete(sesion.token);
     comandos.limpiar(sesion.token);
   }
   res.setHeader(
@@ -561,6 +669,12 @@ app.post("/api/citas", async (req, res) => {
   const sesion = exigirSesion(req);
   exigirRol(sesion, "Dueño");
   const idMascota = enteroPositivo(req.body?.Id_Mascota, "La mascota");
+  const idConsulta =
+    req.body?.Id_Consulta_Akinator === undefined ||
+    req.body?.Id_Consulta_Akinator === null ||
+    req.body?.Id_Consulta_Akinator === ""
+      ? null
+      : enteroPositivo(req.body.Id_Consulta_Akinator, "La evaluación");
   const tipoCita = textoRequerido(req.body?.Tipo_Cita, "El tipo de cita", 50);
   const fechaPropuesta =
     typeof req.body?.Fecha_Propuesta === "string"
@@ -594,6 +708,28 @@ app.post("/api/citas", async (req, res) => {
   );
   const mascota = mascotas[0];
   if (!mascota) throw errorHttp(404, "No se encontró una mascota tuya con ese ID.");
+
+  if (idConsulta !== null) {
+    const consultas = await db.consultar<{ Resultado_Prel: string }>(
+      `SELECT q.Resultado_Prel
+       FROM Consultas_Akinator q
+       INNER JOIN Mascotas m ON m.PK_ID_Mascota = q.FK_ID_Mascota
+       WHERE q.PK_ID_Consulta = @idConsulta
+         AND q.FK_ID_Mascota = @idMascota
+         AND m.FK_ID_Usuario = @idUsuario`,
+      {
+        idConsulta,
+        idMascota,
+        idUsuario: sesion.usuario.Id_Usuario,
+      },
+    );
+    if (!consultas[0]) {
+      throw errorHttp(404, "No se encontró una evaluación de esa mascota.");
+    }
+    if (consultas[0].Resultado_Prel !== "Grave") {
+      throw errorHttp(409, "El resultado no habilita una solicitud de cita desde el árbol.");
+    }
+  }
 
   const veterinarios = await db.consultar<{ Id_Usuario: number }>(
     `SELECT TOP (1) u.PK_ID_Usuario AS Id_Usuario
@@ -631,9 +767,9 @@ app.post("/api/citas", async (req, res) => {
            END;
 
            INSERT INTO Citas
-             (FK_ID_Mascota, FK_ID_Usuario, Tipo_Cita, Fecha_Propuesta, Estado_Cita)
+             (FK_ID_Mascota, FK_ID_Usuario, FK_ID_Consulta, Tipo_Cita, Fecha_Propuesta, Estado_Cita)
            OUTPUT INSERTED.PK_ID_Cita AS Id_Cita
-           VALUES (@idMascota, @idVeterinario, @tipoCita, @fecha, 'Pendiente');
+           VALUES (@idMascota, @idVeterinario, @idConsulta, @tipoCita, @fecha, 'Pendiente');
 
            COMMIT TRANSACTION;
          END TRY
@@ -641,7 +777,7 @@ app.post("/api/citas", async (req, res) => {
            IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
            THROW;
          END CATCH;`,
-        { idVeterinario, idMascota, tipoCita, fecha: fechaPropuesta },
+        { idVeterinario, idMascota, idConsulta, tipoCita, fecha: fechaPropuesta },
       );
       if (resultado[0]?.Conflicto === "horario") {
         throw errorHttp(409, "Ese horario ya está solicitado. Elige otro.");
@@ -675,6 +811,7 @@ app.post("/api/citas", async (req, res) => {
   notificarCita(sesion.usuario.Id_Usuario, idVeterinario, mascota.Nombre_Mascota);
   res.status(201).json({
     Id_Cita: idCita,
+    Id_Consulta_Akinator: idConsulta,
     Id_Mascota: idMascota,
     Nombre_Mascota: mascota.Nombre_Mascota,
     Tipo_Cita: tipoCita,

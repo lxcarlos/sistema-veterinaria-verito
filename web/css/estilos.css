@@ -22,6 +22,42 @@
   --rechazada-fondo: #ffeaeb;
   --completada: #596579;
   --completada-fondo: #e9edf3;
+  --grave: #c43b45;
+  --grave-fondo: #fff0f0;
+  --moderada: #a76b00;
+  --moderada-fondo: #fff5dc;
+  --leve: #087c57;
+  --leve-fondo: #e5f7ee;
+}
+
+:root[data-tema="oscuro"] {
+  color-scheme: dark;
+  --fondo: #101114;
+  --superficie: #1c1d21;
+  --superficie-secundaria: #28292e;
+  --texto: #f5f5f7;
+  --texto-secundario: #a1a1aa;
+  --borde: #393a40;
+  --acento: #0a84ff;
+  --acento-hover: #409cff;
+  --acento-suave: #172b43;
+  --sombra: 0 14px 38px rgb(0 0 0 / 28%);
+  --sombra-seleccion: 0 2px 7px rgb(0 0 0 / 30%);
+  --barra: rgb(28 29 33 / 82%);
+  --pendiente: #ffcc66;
+  --pendiente-fondo: #453618;
+  --aceptada: #65d6a8;
+  --aceptada-fondo: #173a2d;
+  --rechazada: #ff858a;
+  --rechazada-fondo: #462326;
+  --completada: #b7c0cf;
+  --completada-fondo: #30343c;
+  --grave: #ff858a;
+  --grave-fondo: #462326;
+  --moderada: #ffcc66;
+  --moderada-fondo: #453618;
+  --leve: #65d6a8;
+  --leve-fondo: #173a2d;
 }
 
 * {
@@ -109,6 +145,47 @@ button {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.control-tema {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.etiqueta-tema {
+  color: var(--texto-secundario);
+  font-size: 12px;
+}
+
+.interruptor {
+  width: 48px;
+  height: 29px;
+  padding: 3px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--borde);
+  cursor: pointer;
+  transition: background-color 220ms ease;
+}
+
+.interruptor[aria-checked="true"] {
+  background: var(--acento);
+}
+
+.interruptor span {
+  display: block;
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--sombra-seleccion);
+  transform: translateX(0);
+  transition: transform 220ms ease;
+}
+
+.interruptor[aria-checked="true"] span {
+  transform: translateX(19px);
 }
 
 .contenedor-principal {
@@ -465,6 +542,145 @@ button {
   padding: clamp(20px, 4vw, 30px);
 }
 
+.chat-tarjeta {
+  display: grid;
+  gap: 18px;
+  padding: clamp(18px, 4vw, 28px);
+}
+
+.selector-mascota {
+  display: grid;
+  max-width: 430px;
+  gap: 8px;
+  color: var(--texto);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.selector-mascota select {
+  min-height: 45px;
+  padding: 10px 13px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  background: var(--superficie);
+  color: var(--texto);
+}
+
+.progreso-chat {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--superficie-secundaria);
+}
+
+.progreso-chat span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--acento);
+  transition: width 220ms ease;
+}
+
+.mensajes-chat {
+  display: grid;
+  max-height: 58vh;
+  gap: 14px;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.mensaje-inicial {
+  margin: 0;
+  padding: 20px 0;
+  text-align: center;
+}
+
+.fila-chat {
+  display: flex;
+}
+
+.fila-chat.usuario {
+  justify-content: flex-end;
+}
+
+.burbuja {
+  max-width: min(680px, 90%);
+  padding: 14px 16px;
+  border: 1px solid var(--borde);
+  border-radius: 17px;
+  background: var(--superficie-secundaria);
+  line-height: 1.5;
+}
+
+.fila-chat.usuario .burbuja {
+  border-color: var(--acento);
+  background: var(--acento);
+  color: #fff;
+}
+
+.opciones-chat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.chip-opcion {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  background: var(--superficie);
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.chip-opcion:hover {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+.tarjeta-resultado {
+  width: min(680px, 100%);
+  padding: 19px;
+  border: 1px solid var(--borde);
+  border-left: 5px solid var(--completada);
+  border-radius: 16px;
+  background: var(--superficie);
+}
+
+.tarjeta-resultado h2 {
+  margin: 0 0 8px;
+  text-transform: capitalize;
+}
+
+.tarjeta-resultado p {
+  line-height: 1.5;
+}
+
+.gravedad-leve {
+  border-left-color: var(--leve);
+  background: var(--leve-fondo);
+}
+
+.gravedad-moderada {
+  border-left-color: var(--moderada);
+  background: var(--moderada-fondo);
+}
+
+.gravedad-grave {
+  border-left-color: var(--grave);
+  background: var(--grave-fondo);
+}
+
+.formulario-solicitud-cita {
+  margin: 16px 0;
+}
+
+.reiniciar-chat {
+  justify-self: start;
+}
+
 .contenedor-desplegable {
   position: relative;
 }
@@ -628,6 +844,10 @@ button {
     gap: 6px;
   }
 
+  .etiqueta-tema {
+    display: none;
+  }
+
   .etiqueta-tema,
   .perfil-resumen-texto {
     display: none;
@@ -665,6 +885,10 @@ button {
 
   .acciones-cita > button {
     flex: 1 1 auto;
+  }
+
+  .burbuja {
+    max-width: 100%;
   }
 }
 

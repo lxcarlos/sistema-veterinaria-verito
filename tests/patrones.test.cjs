@@ -9,7 +9,9 @@ const { EstadoAceptada } = require("../dist/Patrones/state/EstadoAceptada");
 const { EstadoCompletada } = require("../dist/Patrones/state/EstadoCompletada");
 const { EstadoPendiente } = require("../dist/Patrones/state/EstadoPendiente");
 const { EstadoRechazada } = require("../dist/Patrones/state/EstadoRechazada");
+const { ArbolSintomas } = require("../dist/Patrones/state/ArbolSintomas");
 const { MotorRecomendaciones } = require("../dist/Patrones/strategy/MotorRecomendaciones");
+const { MotorOrientacionSintomas } = require("../dist/Patrones/strategy/MotorOrientacionSintomas");
 
 test("Factory crea entidades para el registro web", () => {
   const usuario = EntidadFactory.crearUsuario(1, "Ana", "ana@example.com", "hash", 7);
@@ -43,6 +45,39 @@ test("State permite únicamente las transiciones previstas", () => {
     new EstadoAceptada().transicionar("Completada") instanceof EstadoCompletada,
   );
   assert.throws(() => pendiente.transicionar("Completada"), /no está permitida/);
+});
+
+test("State recorre el árbol de síntomas y conserva las respuestas", () => {
+  const arbol = new ArbolSintomas();
+
+  assert.match(arbol.obtenerPregunta().texto, /síntoma principal/i);
+  assert.throws(() => arbol.responder(0), /opción de respuesta válida/);
+  assert.equal(arbol.obtenerPuntos(), 0);
+
+  arbol.responder(4);
+  assert.match(arbol.obtenerPregunta().texto, /desde cuándo/i);
+  arbol.responder(1);
+  arbol.responder(1);
+  arbol.responder(1);
+
+  assert.equal(arbol.obtenerPregunta(), null);
+  assert.equal(arbol.obtenerPuntos(), 7);
+  assert.deepEqual(arbol.obtenerRespuestas(), [
+    "Dificultad para respirar",
+    "Desde hoy",
+    "Normal",
+    "Normal",
+  ]);
+  assert.throws(() => arbol.responder(1), /ya terminó/);
+});
+
+test("Strategy elige la orientación según el puntaje del árbol", () => {
+  const motor = new MotorOrientacionSintomas();
+
+  assert.equal(motor.evaluar(3).Gravedad, "Leve");
+  assert.equal(motor.evaluar(4).Gravedad, "Moderada");
+  assert.equal(motor.evaluar(7).Gravedad, "Grave");
+  assert.throws(() => motor.evaluar(-1), /puntaje/);
 });
 
 test("Command ejecuta y deshace la última acción del usuario", async () => {

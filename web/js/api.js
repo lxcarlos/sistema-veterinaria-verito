@@ -67,6 +67,18 @@ export function obtenerTiposCita() {
   return solicitar("/api/tipos-cita");
 }
 
+export function iniciarAkinator(idMascota) {
+  return solicitar("/api/akinator/iniciar", "POST", {
+    Id_Mascota: Number(idMascota),
+  });
+}
+
+export function responderAkinator(numeroOpcion) {
+  return solicitar("/api/akinator/responder", "POST", {
+    Numero_Opcion: Number(numeroOpcion),
+  });
+}
+
 export function obtenerMascotas() {
   return solicitar("/api/mascotas");
 }
@@ -84,6 +96,9 @@ export function agendarCita(datos) {
     Id_Mascota: Number(datos.Id_Mascota),
     Tipo_Cita: datos.Tipo_Cita,
     Fecha_Propuesta: fecha.toISOString(),
+    ...(datos.Id_Consulta_Akinator
+      ? { Id_Consulta_Akinator: Number(datos.Id_Consulta_Akinator) }
+      : {}),
   });
 }
 

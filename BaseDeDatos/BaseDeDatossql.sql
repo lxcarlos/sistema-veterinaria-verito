@@ -50,22 +50,53 @@ BEGIN
     );
 END;
 
+IF OBJECT_ID('dbo.Consultas_Akinator', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Consultas_Akinator (
+        PK_ID_Consulta INT IDENTITY(1,1) PRIMARY KEY,
+        FK_ID_Mascota INT NOT NULL,
+        Sintomas_Cap NVARCHAR(MAX) NOT NULL,
+        Resultado_Prel VARCHAR(30) NOT NULL,
+        Fecha_Consulta DATETIME2 NOT NULL
+            CONSTRAINT DF_Consultas_Akinator_Fecha DEFAULT SYSDATETIME(),
+        CONSTRAINT FK_Consulta_Mascota
+            FOREIGN KEY (FK_ID_Mascota) REFERENCES dbo.Mascotas(PK_ID_Mascota)
+    );
+END;
+
 IF OBJECT_ID('dbo.Citas', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.Citas (
         PK_ID_Cita INT IDENTITY(1,1) PRIMARY KEY,
         FK_ID_Mascota INT NOT NULL,
         FK_ID_Usuario INT NOT NULL,
+        FK_ID_Consulta INT NULL,
         Tipo_Cita VARCHAR(50) NOT NULL,
         Fecha_Propuesta DATETIME NOT NULL,
         Estado_Cita VARCHAR(30) NOT NULL
             CONSTRAINT DF_Citas_Estado DEFAULT 'Pendiente',
         CONSTRAINT FK_Cita_Mascota
             FOREIGN KEY (FK_ID_Mascota) REFERENCES dbo.Mascotas(PK_ID_Mascota),
+        CONSTRAINT FK_Cita_Consulta
+            FOREIGN KEY (FK_ID_Consulta) REFERENCES dbo.Consultas_Akinator(PK_ID_Consulta),
         CONSTRAINT FK_Cita_Veterinario
             FOREIGN KEY (FK_ID_Usuario) REFERENCES dbo.Usuarios(PK_ID_Usuario)
     );
 END;
+
+IF COL_LENGTH('dbo.Citas', 'FK_ID_Consulta') IS NULL
+    EXEC sp_executesql N'ALTER TABLE dbo.Citas ADD FK_ID_Consulta INT NULL;';
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_keys
+    WHERE parent_object_id = OBJECT_ID('dbo.Citas')
+      AND referenced_object_id = OBJECT_ID('dbo.Consultas_Akinator')
+)
+    ALTER TABLE dbo.Citas WITH CHECK
+        ADD CONSTRAINT FK_Cita_Consulta
+            FOREIGN KEY (FK_ID_Consulta)
+            REFERENCES dbo.Consultas_Akinator(PK_ID_Consulta);
 
 /* Migrate the previous appointment link without deleting existing records. */
 IF COL_LENGTH('dbo.Citas', 'FK_ID_Mascota') IS NULL

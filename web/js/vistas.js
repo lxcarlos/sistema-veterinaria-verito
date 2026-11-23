@@ -40,11 +40,21 @@ function claseEstado(estado) {
 
 export function encabezado(
   usuario,
+  modoOscuro,
   perfilAbierto,
   notificacionesAbiertas,
   notificaciones,
 ) {
-  if (!usuario) return "";
+  const controlTema = `
+    <div class="control-tema">
+      <span class="etiqueta-tema">Modo oscuro</span>
+      <button class="interruptor" type="button" role="switch"
+        aria-checked="${modoOscuro}" aria-label="Cambiar modo oscuro"
+        data-accion="tema">
+        <span></span>
+      </button>
+    </div>`;
+  if (!usuario) return controlTema;
 
   const listaNotificaciones = notificacionesAbiertas
     ? `<div class="menu-desplegable menu-notificaciones">
@@ -75,6 +85,7 @@ export function encabezado(
     : "";
 
   return `
+    ${controlTema}
     <button class="boton-icono" type="button" aria-label="Deshacer última acción"
       title="Deshacer última acción" data-accion="deshacer">↶</button>
     <div class="contenedor-desplegable">
@@ -170,6 +181,7 @@ export function menu(rol, vistaActual) {
       ? [{ vista: "citas", texto: "Citas" }]
       : [
           { vista: "mascotas", texto: "Mis mascotas" },
+          { vista: "akinator", texto: "Árbol de síntomas" },
           { vista: "agendar", texto: "Solicitar cita" },
           { vista: "citas", texto: "Mis citas" },
         ];
@@ -293,6 +305,137 @@ export function vistaAgendarCita(mascotas, tiposCita) {
     </section>`;
 }
 
+function burbuja(mensaje) {
+  if (mensaje.Tipo === "usuario") {
+    return `<div class="fila-chat usuario"><div class="burbuja">${escapar(mensaje.Texto)}</div></div>`;
+  }
+
+  if (mensaje.Tipo === "resultado") {
+    const gravedad = mensaje.Consulta.Resultado_Prel;
+    const estadosActivos = ["Pendiente", "Aceptada", "Completada"];
+    const citaActiva = estadosActivos.includes(mensaje.Estado_Cita);
+    const solicitudCita =
+      gravedad !== "Grave"
+        ? `<p class="texto-secundario">
+            Este prototipo permite solicitar una cita desde el árbol cuando el resultado es grave.
+          </p>`
+        : citaActiva
+          ? `<p>
+              Solicitud ${escapar(mensaje.Estado_Cita.toLowerCase())}
+              ${mensaje.Fecha_Cita ? `· ${formatoFecha(mensaje.Fecha_Cita)}` : ""}.
+              ${mensaje.Estado_Cita === "Pendiente" ? "Espera la respuesta del veterinario." : ""}
+            </p>
+            <button class="boton-secundario" type="button" data-vista="citas">
+              Ver mis citas
+            </button>`
+          : `<form class="formulario formulario-solicitud-cita"
+              data-formulario="agendar-cita">
+              <input type="hidden" name="Id_Mascota"
+                value="${mensaje.Consulta.Id_Mascota}" />
+              <input type="hidden" name="Id_Consulta_Akinator"
+                value="${mensaje.Consulta.Id_Consulta_Akinator}" />
+              <input type="hidden" name="Tipo_Cita" value="Consulta general" />
+              <label>Fecha y hora que deseas solicitar
+                <input name="Fecha_Propuesta" type="datetime-local"
+                  min="${fechaMinimaLocal()}" step="1800" required />
+              </label>
+              <button class="boton-principal" type="submit">Solicitar cita</button>
+              <p class="texto-secundario">
+                La cita quedará pendiente hasta que un veterinario responda.
+              </p>
+            </form>
+            <p class="texto-secundario">
+              Si parece una emergencia, contacta directamente a una clínica; no esperes la respuesta de esta solicitud.
+            </p>`;
+    return `
+      <div class="fila-chat bot">
+        <article class="tarjeta-resultado gravedad-${claseEstado(gravedad)}">
+          <p class="sobrelinea">Resultado orientativo del árbol</p>
+          <h2>Prioridad ${escapar(gravedad.toLowerCase())}</h2>
+          <p>${escapar(mensaje.Consulta.Texto_Recomendacion)}</p>
+          <p class="texto-secundario">
+            Este prototipo no diagnostica. Sus preguntas y puntajes requieren validación veterinaria.
+          </p>
+          ${solicitudCita}
+        </article>
+      </div>`;
+  }
+
+  return `
+    <div class="fila-chat bot">
+      <div class="burbuja">
+        ${escapar(mensaje.Texto)}
+        ${
+          mensaje.Opciones?.length
+            ? `<div class="opciones-chat">
+                ${mensaje.Opciones.map(
+                  (opcion) => `
+                    <button class="chip-opcion" type="button"
+                      data-opcion="${opcion.Numero_Opcion}">
+                      ${escapar(opcion.Texto_Opcion)}
+                    </button>`,
+                ).join("")}
+              </div>`
+            : ""
+        }
+      </div>
+    </div>`;
+}
+
+export function vistaAkinator(
+  mascotas,
+  idMascota,
+  mensajes,
+  progreso,
+  escribiendo,
+) {
+  return `
+    <section class="encabezado-vista">
+      <p class="sobrelinea">Orientación inicial</p>
+      <h1>Árbol de síntomas</h1>
+      <p class="texto-secundario">
+        Responde sobre tu mascota para obtener una orientación inicial, no un diagnóstico.
+      </p>
+    </section>
+    <section class="tarjeta chat-tarjeta">
+      <label class="selector-mascota">¿Para cuál mascota es la consulta?
+        <select data-mascota-chat>
+          <option value="">Selecciona una mascota</option>
+          ${mascotas
+            .map(
+              (mascota) => `
+                <option value="${mascota.Id_Mascota}"
+                  ${Number(idMascota) === mascota.Id_Mascota ? "selected" : ""}>
+                  ${escapar(mascota.Nombre_Mascota)} · ${escapar(mascota.Nombre_Especie)}
+                </option>`,
+            )
+            .join("")}
+        </select>
+      </label>
+      <div class="progreso-chat" aria-label="Progreso del árbol de síntomas">
+        <span style="width: ${progreso}%"></span>
+      </div>
+      <div class="mensajes-chat" id="mensajes-chat" aria-live="polite">
+        ${
+          mensajes.length
+            ? mensajes.map(burbuja).join("")
+            : '<p class="texto-secundario mensaje-inicial">Elige una mascota para comenzar.</p>'
+        }
+        ${
+          escribiendo
+            ? '<div class="fila-chat bot"><div class="burbuja indicador-escribiendo" aria-label="Procesando respuesta"><span></span><span></span><span></span></div></div>'
+            : ""
+        }
+      </div>
+      ${
+        idMascota
+          ? `<button class="boton-texto reiniciar-chat" type="button"
+              data-accion="reiniciar-chat">Reiniciar árbol</button>`
+          : ""
+      }
+    </section>`;
+}
+
 export function vistaCitas(citas, esVeterinario) {
   return `
     <section class="encabezado-vista">
@@ -315,6 +458,12 @@ export function vistaCitas(citas, esVeterinario) {
                         <p>${escapar(cita.Nombre_Especie)} · ${formatoFecha(cita.Fecha_Propuesta)}</p>
                         <p>${escapar(cita.Tipo_Cita)}</p>
                         <p>${escapar(cita.Texto_Recomendacion)}</p>
+                        ${
+                          esVeterinario && cita.Resultado_Prel
+                            ? `<p>Prioridad orientativa del árbol: ${escapar(cita.Resultado_Prel)}</p>
+                               <p>Respuestas: ${escapar(cita.Sintomas_Cap)}</p>`
+                            : ""
+                        }
                         ${esVeterinario ? `<p>Dueño: ${escapar(cita.Nombre_Usuario)}</p>` : ""}
                       </div>
                       <span class="estado estado-${claseEstado(cita.Estado_Cita)}">
