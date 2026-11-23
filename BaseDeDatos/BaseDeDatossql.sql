@@ -97,3 +97,5 @@ SELECT * FROM Citas;
 
 /* ver todas las observaciones medicas */
 SELECT * FROM Observaciones_Medicas;
+
+
