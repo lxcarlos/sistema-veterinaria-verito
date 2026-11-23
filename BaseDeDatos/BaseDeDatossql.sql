@@ -116,7 +116,14 @@ SET Estado_Cita = 'Pendiente'
 WHERE Estado_Cita IS NULL;
 
 IF COLUMNPROPERTY(OBJECT_ID('dbo.Citas'), 'Estado_Cita', 'AllowsNull') = 1
-    EXEC sp_executesql N'ALTER TABLE dbo.Citas ALTER COLUMN Estado_Cita VARCHAR(30) NOT NULL;';
+   AND NOT EXISTS (
+       SELECT 1
+       FROM sys.check_constraints
+       WHERE parent_object_id = OBJECT_ID('dbo.Citas')
+         AND name = 'CK_Citas_Estado_NotNull'
+   )
+    ALTER TABLE dbo.Citas WITH CHECK
+        ADD CONSTRAINT CK_Citas_Estado_NotNull CHECK (Estado_Cita IS NOT NULL);
 
 IF NOT EXISTS (
     SELECT 1 FROM sys.indexes
