@@ -1,8 +1,8 @@
-import { Akinator } from "./patterns/state/Akinator";
-import { AgendarCitaComando } from "./patterns/command/AgendarCitaComando";
-import { ActualizarExpedienteComando } from "./patterns/command/ActualizarExpedienteComando";
-import { GestorComandos } from "./patterns/command/GestorComandos";
-import { MotorRecomendaciones } from "./patterns/strategy/MotorRecomendaciones";
+import { Akinator } from "./Patrones/state/Akinator";
+import { AgendarCitaComando } from "./Patrones/command/AgendarCitaComando";
+import { ActualizarExpedienteComando } from "./Patrones/command/ActualizarExpedienteComando";
+import { GestorComandos } from "./Patrones/command/GestorComandos";
+import { MotorRecomendaciones } from "./Patrones/strategy/MotorRecomendaciones";
 
 const akinator = new Akinator();
 const respuestas = [1, 2, 2, 2, 2];

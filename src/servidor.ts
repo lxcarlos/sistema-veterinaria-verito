@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { ConexionBaseDatos } from "./patterns/singleton/ConexionBaseDatos";
+import { ConexionBaseDatos } from "./Patrones/singleton/ConexionBaseDatos";
 
 const app = express();
 app.use(cors());
