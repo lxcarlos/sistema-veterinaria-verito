@@ -1,6 +1,19 @@
 import express from "express";
 import cors from "cors";
-import { ConexionBaseDatos } from "./patterns/singleton/ConexionBaseDatos";
+import session from "express-session";
+import path from "path";
+import { ConexionBaseDatos } from "./Patrones/singleton/ConexionBaseDatos";
+
+declare module "express-session" {
+    interface SessionData {
+        usuario?: {
+            Id_Usuario: number;
+            Nombre_Usuario: string;
+            Email_Usuario: string;
+            Nombre_Rol: string;
+        };
+    }
+}
 
 const app = express();
 app.use(cors());
