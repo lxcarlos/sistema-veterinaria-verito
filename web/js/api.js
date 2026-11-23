@@ -513,14 +513,8 @@ export function deshacerUltimaAccion() {
 }
 
 // luego: fetch("/api/notificaciones")
-export function obtenerNotificaciones() {
-  return conDemora(() => {
-    if (!usuarioActual) return [];
-    return notificaciones.filter(
-      (notificacion) =>
-        (notificacion.Email_Usuario &&
-          notificacion.Email_Usuario === usuarioActual.Email_Usuario) ||
-        notificacion.Nombre_Rol === usuarioActual.Nombre_Rol,
-    );
-  });
+export async function obtenerNotificaciones() {
+  const res = await fetch("/api/notificaciones");
+  return await res.json();
 }
+

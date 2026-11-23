@@ -3,6 +3,8 @@ import cors from "cors";
 import session from "express-session";
 import path from "path";
 import { ConexionBaseDatos } from "./Patrones/singleton/ConexionBaseDatos";
+import { almacenamientoNotificacion } from "./Patrones/observer/almacenamientoNotificacion";
+
 
 declare module "express-session" {
     interface SessionData {
@@ -127,6 +129,13 @@ app.get("/api/usuarios/actual", (req, res) => {
     res.json(req.session.usuario ?? null);
 });
 
+app.get("/api/notificaciones", (req, res) => {
+    const u = req.session.usuario;
+    if (!u) return res.json([]);
+    res.json(
+        almacenamientoNotificacion.getInstancia().obtenerPara(u.Email_Usuario, u.Nombre_Rol)
+    );
+});
 
 app.listen(3001, () => {
     console.log("Servidor listo en http://localhost:3001");
