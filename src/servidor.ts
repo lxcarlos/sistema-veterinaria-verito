@@ -405,24 +405,6 @@ app.post("/api/usuarios", async (req, res) => {
     typeof req.body?.password === "string" ? req.body.password : "";
   const rolSolicitado = textoRequerido(req.body?.nombreRol, "El rol", 50);
 
-  if (rolSolicitado === "Veterinario") {
-    const codigoConfigurado = process.env.VETERINARIAN_REGISTRATION_CODE;
-    const codigoIngresado =
-      typeof req.body?.codigoVeterinario === "string"
-        ? req.body.codigoVeterinario
-        : "";
-    if (!codigoConfigurado) {
-      throw errorHttp(503, "El registro veterinario no está habilitado.");
-    }
-    const esperado = Buffer.from(codigoConfigurado);
-    const ingresado = Buffer.from(codigoIngresado);
-    if (
-      esperado.length !== ingresado.length ||
-      !timingSafeEqual(esperado, ingresado)
-    ) {
-      throw errorHttp(403, "El código de invitación veterinaria no es válido.");
-    }
-  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw errorHttp(400, "Ingresa un correo válido.");
   }

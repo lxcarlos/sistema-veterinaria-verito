@@ -223,13 +223,6 @@ export function login(roles, modo, rolSeleccionado) {
               autocomplete="${registro ? "new-password" : "current-password"}"
               placeholder="••••••••" minlength="${registro ? "8" : "1"}" required />
           </label>
-          ${
-            registro && rolSeleccionado === "Veterinario"
-              ? `<label>Código de invitación para veterinarios
-                  <input name="Codigo_Veterinario" type="password" autocomplete="off" required />
-                </label>`
-              : ""
-          }
           <button class="boton-principal" type="submit">
             <span>${registro ? "Crear mi cuenta" : "Entrar a mi espacio"}</span>
             <span aria-hidden="true">→</span>
