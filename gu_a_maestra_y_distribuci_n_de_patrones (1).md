@@ -13,6 +13,14 @@ La aplicación conserva las funciones necesarias para demostrar los patrones des
 | Command | Registrar mascota, solicitar cita y cambiar su estado son comandos que pueden deshacerse desde la página. |
 | Observer | Al solicitar o actualizar una cita, el dueño y el veterinario reciben una notificación en la interfaz. |
 
+## Responsables del desarrollo
+
+| Integrante | Patrones |
+|---|---|
+| Christian | Singleton y Observer |
+| Gerardo | Factory y Strategy |
+| Carlos | State y Command |
+
 ## Flujo mínimo
 
 - El dueño crea su cuenta y registra mascotas.
@@ -25,7 +33,7 @@ La aplicación conserva las funciones necesarias para demostrar los patrones des
 ## Para ejecutar
 
 1. Ejecuta `BaseDeDatos/BaseDeDatossql.sql` en SQL Server Management Studio. El script crea el esquema mínimo, las evaluaciones del árbol y la relación opcional entre evaluación y cita; migra el esquema anterior sin borrar los registros existentes.
-2. Copia `.env.example` a `.env` y configura la conexión a SQL Server. Define también el código de invitación para registrar veterinarios. No publiques `.env`.
+2. Copia `.env.example` a `.env` y configura la conexión a SQL Server. No publiques `.env`.
 3. Ejecuta `npm run dev` y abre `http://localhost:3001`.
 4. Ejecuta `npm test` para compilar y validar los patrones, o `npm run build` para compilar solamente.
 

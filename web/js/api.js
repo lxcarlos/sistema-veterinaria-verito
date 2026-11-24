@@ -36,14 +36,12 @@ export function registrarUsuario(
   email,
   contrasena,
   nombreRol,
-  codigoVeterinario,
 ) {
   return solicitar("/api/usuarios", "POST", {
     nombre,
     email,
     password: contrasena,
     nombreRol,
-    codigoVeterinario,
   });
 }
 
