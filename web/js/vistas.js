@@ -115,63 +115,128 @@ export function encabezado(
 export function login(roles, modo, rolSeleccionado) {
   const registro = modo === "registro";
   return `
-    <section class="tarjeta acceso">
-      <div class="marca-grande"><span class="marca-icono">V</span></div>
-      <p class="sobrelinea">Bienvenido a Verito</p>
-      <h1>${registro ? "Crea tu cuenta" : "Tu cuidado veterinario, más cerca"}</h1>
-      <p class="texto-secundario">
-        ${registro ? "Regístrate para comenzar." : "Inicia sesión para continuar."}
-      </p>
-      <div class="pestanas" role="tablist" aria-label="Acceso">
-        <button type="button" role="tab" aria-selected="${!registro}"
-          class="${!registro ? "seleccionado" : ""}" data-accion="modo-login">
-          Iniciar sesión
-        </button>
-        <button type="button" role="tab" aria-selected="${registro}"
-          class="${registro ? "seleccionado" : ""}" data-accion="modo-registro">
-          Crear cuenta
-        </button>
-      </div>
-      <div class="segmentado" role="group" aria-label="Selecciona tu rol">
-        ${roles
-          .map(
-            (rol) => `
-              <button type="button"
-                class="${rol.Nombre_Rol === rolSeleccionado ? "seleccionado" : ""}"
-                aria-pressed="${rol.Nombre_Rol === rolSeleccionado}"
-                data-rol="${escapar(rol.Nombre_Rol)}">
-                ${escapar(rol.Nombre_Rol)}
-              </button>`,
-          )
-          .join("")}
-      </div>
-      <form class="formulario" data-formulario="${registro ? "registro" : "login"}">
-        ${
-          registro
-            ? `<label>Nombre
-                <input name="Nombre_Usuario" autocomplete="name" required />
-              </label>`
-            : ""
-        }
-        <label>Correo electrónico
-          <input name="Email_Usuario" type="email" autocomplete="email" required />
-        </label>
-        <label>Contraseña
-          <input name="Contrasena" type="password"
-            autocomplete="${registro ? "new-password" : "current-password"}"
-            minlength="${registro ? "8" : "1"}" required />
-        </label>
-        ${
-          registro && rolSeleccionado === "Veterinario"
-            ? `<label>Código de invitación para veterinarios
-                <input name="Codigo_Veterinario" type="password" autocomplete="off" required />
-              </label>`
-            : ""
-        }
-        <button class="boton-principal" type="submit">
-          ${registro ? "Crear cuenta" : "Iniciar sesión"}
-        </button>
-      </form>
+    <section class="acceso-layout">
+      <aside class="acceso-hero">
+        <div class="hero-identidad">
+          <span class="hero-marca-icono">V</span>
+          <span>VERITO <small>ATENCIÓN VETERINARIA</small></span>
+        </div>
+        <div class="hero-mensaje">
+          <p class="hero-sobrelinea"><span></span> Cuidado que empieza escuchando</p>
+          <h2>Ellos no pueden decirlo.<br /><em>Nosotros te ayudamos</em><br />a entenderlo.</h2>
+          <p class="hero-descripcion">
+            Una forma más clara de acompañar la salud de tu mascota, desde la primera señal hasta su cita.
+          </p>
+          <div class="hero-beneficios">
+            <span><b>01</b> Orientación por síntomas</span>
+            <span><b>02</b> Seguimiento de citas</span>
+          </div>
+        </div>
+        <div class="hero-ilustracion" aria-hidden="true">
+          <div class="hero-anillo hero-anillo-uno"></div>
+          <div class="hero-anillo hero-anillo-dos"></div>
+          <div class="hero-punto hero-punto-uno"></div>
+          <div class="hero-punto hero-punto-dos"></div>
+          <div class="hero-mascota">
+            <svg viewBox="0 0 220 220" fill="none">
+              <path d="M66 79 48 36c-2-5 4-9 8-5l37 28m61 20 18-43c2-5-4-9-8-5l-37 28"
+                stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M51 112c0-36 26-61 59-61s59 25 59 61v20c0 34-26 57-59 57s-59-23-59-57v-20Z"
+                fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="8"/>
+              <path d="M82 112h1m54 0h1" stroke="currentColor" stroke-width="12" stroke-linecap="round"/>
+              <path d="m101 135 9 7 9-7m-9 7v11m-17-1c5 8 11 12 17 12s12-4 17-12"
+                stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M31 143c-10-9-10-22 0-31 10 9 10 22 0 31Zm158 0c-10-9-10-22 0-31 10 9 10 22 0 31Z"
+                fill="currentColor" fill-opacity=".78"/>
+            </svg>
+          </div>
+          <div class="hero-nota hero-nota-superior">
+            <span class="hero-nota-icono">✦</span>
+            <span><strong>4 preguntas</strong><small>Un paso a la vez</small></span>
+          </div>
+          <div class="hero-nota hero-nota-inferior">
+            <span class="hero-nota-pulso"></span>
+            <span><strong>Siempre cerca</strong><small>Para quienes más quieres</small></span>
+          </div>
+          <span class="hero-destello hero-destello-uno">✳</span>
+          <span class="hero-destello hero-destello-dos">✳</span>
+        </div>
+        <div class="hero-pie">
+          <span>HECHO PARA CUIDAR MEJOR</span>
+          <span>01 — 03</span>
+        </div>
+      </aside>
+
+      <section class="tarjeta acceso">
+        <div class="acceso-cabecera">
+          <span class="acceso-icono">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"
+                stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8.5 12h2l1.2-2.5 1.6 5 1.1-2.5h1.1"
+                stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <p class="sobrelinea">Tu espacio Verito</p>
+          <h1>${registro ? "Comencemos." : "Qué gusto verte."}</h1>
+          <p class="texto-secundario">
+            ${registro ? "Crea tu cuenta y cuidemos de tu mascota." : "Inicia sesión para continuar cuidando de quien más quieres."}
+          </p>
+        </div>
+        <div class="pestanas" role="tablist" aria-label="Acceso">
+          <button type="button" role="tab" aria-selected="${!registro}"
+            class="${!registro ? "seleccionado" : ""}" data-accion="modo-login">
+            Iniciar sesión
+          </button>
+          <button type="button" role="tab" aria-selected="${registro}"
+            class="${registro ? "seleccionado" : ""}" data-accion="modo-registro">
+            Crear cuenta
+          </button>
+        </div>
+        <div class="segmentado" role="group" aria-label="Selecciona tu rol">
+          ${roles
+            .map(
+              (rol) => `
+                <button type="button"
+                  class="${rol.Nombre_Rol === rolSeleccionado ? "seleccionado" : ""}"
+                  aria-pressed="${rol.Nombre_Rol === rolSeleccionado}"
+                  data-rol="${escapar(rol.Nombre_Rol)}">
+                  ${rol.Nombre_Rol === "Dueño" ? "Dueño de mascota" : "Veterinario"}
+                </button>`,
+            )
+            .join("")}
+        </div>
+        <form class="formulario" data-formulario="${registro ? "registro" : "login"}">
+          ${
+            registro
+              ? `<label>Nombre completo
+                  <input name="Nombre_Usuario" autocomplete="name" placeholder="Tu nombre" required />
+                </label>`
+              : ""
+          }
+          <label>Correo electrónico
+            <input name="Email_Usuario" type="email" autocomplete="email"
+              placeholder="nombre@correo.com" required />
+          </label>
+          <label>Contraseña
+            <input name="Contrasena" type="password"
+              autocomplete="${registro ? "new-password" : "current-password"}"
+              placeholder="••••••••" minlength="${registro ? "8" : "1"}" required />
+          </label>
+          ${
+            registro && rolSeleccionado === "Veterinario"
+              ? `<label>Código de invitación para veterinarios
+                  <input name="Codigo_Veterinario" type="password" autocomplete="off" required />
+                </label>`
+              : ""
+          }
+          <button class="boton-principal" type="submit">
+            <span>${registro ? "Crear mi cuenta" : "Entrar a mi espacio"}</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </form>
+        <p class="acceso-seguro"><span>♧</span> Tus datos y los de tu mascota se mantienen protegidos.</p>
+      </section>
     </section>`;
 }
 
