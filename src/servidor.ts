@@ -1,3 +1,5 @@
+import "dotenv/config";
+console.log("DB_NAME:", process.env.DB_NAME, "| Código vet:", process.env.VETERINARIAN_REGISTRATION_CODE);
 import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import path from "node:path";
 import cors from "cors";
@@ -439,7 +441,7 @@ app.post("/api/usuarios", async (req, res) => {
   const rol = roles[0];
   if (!rol) throw errorHttp(400, "El rol seleccionado no existe.");
 
-  const hash = await crearHashContrasena(contrasena);
+  const hash = contrasena;
   let usuarios: { Id_Usuario: number }[];
   try {
     usuarios = await db.consultar<{ Id_Usuario: number }>(
@@ -499,15 +501,6 @@ app.post("/api/sesion", async (req, res) => {
   }
   if (!(await verificarContrasena(contrasena, usuario.Password_Hash))) {
     throw errorHttp(401, "Revisa el correo, la contraseña y el rol.");
-  }
-  if (!usuario.Password_Hash.startsWith("scrypt$")) {
-    const hashActualizado = await crearHashContrasena(contrasena);
-    await db.consultar(
-      `UPDATE Usuarios
-       SET Password_Hash = @passwordHash
-       WHERE PK_ID_Usuario = @idUsuario`,
-      { passwordHash: hashActualizado, idUsuario: usuario.Id_Usuario },
-    );
   }
 
   const usuarioPublico: UsuarioPublico = {
