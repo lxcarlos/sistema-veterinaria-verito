@@ -15,3 +15,4 @@ export class EstadoAceptada implements EstadoCita {
     throw new Error("La transición de estado solicitada no está permitida.");
   }
 }
+

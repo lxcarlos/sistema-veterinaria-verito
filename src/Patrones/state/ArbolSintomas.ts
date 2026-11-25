@@ -9,11 +9,6 @@ export interface PreguntaSintomas {
   readonly opciones: readonly OpcionSintomas[];
 }
 
-interface EstadoArbolSintomas {
-  obtenerPregunta(): PreguntaSintomas | null;
-  responder(arbol: ArbolSintomas, numeroOpcion: number): void;
-}
-
 const preguntas: readonly Omit<PreguntaSintomas, "numero">[] = [
   {
     texto: "¿Cuál es el síntoma principal?",
@@ -50,69 +45,60 @@ const preguntas: readonly Omit<PreguntaSintomas, "numero">[] = [
   },
 ];
 
-class EstadoPreguntaSintomas implements EstadoArbolSintomas {
-  public constructor(private readonly indice: number) {}
+export class ArbolSintomas {
+  public static readonly totalPreguntas = preguntas.length;
+  private indice = 0;
+  private puntos = 0;
+  private readonly respuestas: string[] = [];
 
-  public obtenerPregunta(): PreguntaSintomas {
+
+
+
+
+
+
+/**UBICACION */
+  public obtenerPregunta(): PreguntaSintomas | null {/** obtiene el numero de pregunta actual */
+    if (this.indice >= preguntas.length) return null;
     const pregunta = preguntas[this.indice];
     if (!pregunta) throw new Error("No hay una pregunta de síntomas disponible.");
-    return { ...pregunta, numero: this.indice + 1 };
+    return { ...pregunta, numero: this.indice + 1 };// ... esos puntos suspensivos son para que se haga una copia de la
+    //pregunta y no se modifique el original, ademas que le suman el nuero de pregunta actual, que es el indice + 1
   }
 
-  public responder(arbol: ArbolSintomas, numeroOpcion: number): void {
-    const pregunta = this.obtenerPregunta();
+
+
+
+
+
+/**REVISAR QUE PUSO EL USUSARIO */
+  public responder(numeroOpcion: number): void {/**revisa que el usuario haya elegido una opcion valida */
+    if (this.indice >= preguntas.length) {
+      throw new Error("El árbol de síntomas ya termino.");
+    }
+    const pregunta = this.obtenerPregunta()!;// pide la pregunta actual, y el signo de exclamacion es para decirle a typescript que aun quedan preguntas por responder
     const opcion = pregunta.opciones[numeroOpcion - 1];
     if (!Number.isInteger(numeroOpcion) || !opcion) {
       throw new RangeError("Selecciona una opción de respuesta válida.");
     }
 
-    arbol.registrarRespuesta(opcion);
-    arbol.cambiarEstado(
-      this.indice + 1 < preguntas.length
-        ? new EstadoPreguntaSintomas(this.indice + 1)
-        : new EstadoResultadoSintomas(),
-    );
-  }
-}
-
-class EstadoResultadoSintomas implements EstadoArbolSintomas {
-  public obtenerPregunta(): null {
-    return null;
-  }
-
-  public responder(): never {
-    throw new Error("El árbol de síntomas ya terminó.");
-  }
-}
-
-export class ArbolSintomas {
-  public static readonly totalPreguntas = preguntas.length;
-  private estado: EstadoArbolSintomas = new EstadoPreguntaSintomas(0);
-  private puntos = 0;
-  private readonly respuestas: string[] = [];
-
-  public obtenerPregunta(): PreguntaSintomas | null {
-    return this.estado.obtenerPregunta();
-  }
-
-  public responder(numeroOpcion: number): void {
-    this.estado.responder(this, numeroOpcion);
-  }
-
-  public cambiarEstado(estado: EstadoArbolSintomas): void {
-    this.estado = estado;
-  }
-
-  public registrarRespuesta(opcion: OpcionSintomas): void {
     this.puntos += opcion.puntos;
-    this.respuestas.push(opcion.texto);
-  }
+    this.respuestas.push(opcion.texto);/**lo que hace push es agregar el texto de la opción
+    seleccionada al arreglo de respuestas */
+    /**es decir jala el texto de la opción seleccionada */
+    this.indice++;
+  } 
 
+
+
+
+
+  /**Lanza los resultados */
   public obtenerPuntos(): number {
     return this.puntos;
   }
 
   public obtenerRespuestas(): string[] {
-    return [...this.respuestas];
-  }
+  return this.respuestas.slice();
+}
 }
