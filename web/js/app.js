@@ -119,27 +119,118 @@ async function renderizar() {
   }
 }
 
+// --- Actualización en sitio del chat (sin reconstruir #app) ---
+function esRelevante(nodo) {
+  return (
+    nodo.nodeType === Node.ELEMENT_NODE ||
+    (nodo.nodeType === Node.TEXT_NODE && nodo.nodeValue.trim() !== "")
+  );
+}
+
+function sincronizarAtributos(actual, nuevo) {
+  Array.from(actual.attributes).forEach((atributo) => {
+    if (!nuevo.hasAttribute(atributo.name)) actual.removeAttribute(atributo.name);
+  });
+  Array.from(nuevo.attributes).forEach((atributo) => {
+    if (actual.getAttribute(atributo.name) !== atributo.value) {
+      actual.setAttribute(atributo.name, atributo.value);
+    }
+  });
+}
+
+function sincronizarHijos(actual, nuevo) {
+  const viejos = Array.from(actual.childNodes).filter(esRelevante);
+  const nuevos = Array.from(nuevo.childNodes).filter(esRelevante);
+
+  nuevos.forEach((hijoNuevo, indice) => {
+    const hijoViejo = viejos[indice];
+    if (!hijoViejo) {
+      actual.appendChild(hijoNuevo);
+    } else if (
+      hijoViejo.nodeType === hijoNuevo.nodeType &&
+      hijoViejo.nodeName === hijoNuevo.nodeName
+    ) {
+      if (hijoViejo.nodeType === Node.TEXT_NODE) {
+        if (hijoViejo.nodeValue !== hijoNuevo.nodeValue) {
+          hijoViejo.nodeValue = hijoNuevo.nodeValue;
+        }
+      } else {
+        sincronizarAtributos(hijoViejo, hijoNuevo);
+        sincronizarHijos(hijoViejo, hijoNuevo);
+      }
+    } else {
+      actual.replaceChild(hijoNuevo, hijoViejo);
+    }
+  });
+
+  viejos.slice(nuevos.length).forEach((nodo) => nodo.remove());
+}
+
+// Devuelve false si el chat no está montado (entonces se usa renderizar()).
+function actualizarChat() {
+  const contenedor = document.querySelector("#mensajes-chat");
+  const tarjeta = contenedor?.closest(".chat-tarjeta");
+  if (!tarjeta || usuario?.Nombre_Rol !== "Dueño" || vistaActual !== "akinator") {
+    return false;
+  }
+
+  const plantilla = document.createElement("template");
+  plantilla.innerHTML = vistas.contenidoMensajes(mensajesChat, escribiendo);
+  sincronizarHijos(contenedor, plantilla.content);
+
+  const valorProgreso = tarjeta.querySelector(".chat-progreso-cabecera strong");
+  if (valorProgreso) valorProgreso.textContent = `${progresoChat}%`;
+  const barra = tarjeta.querySelector(".progreso-chat span");
+  if (barra) barra.style.width = `${progresoChat}%`;
+
+  const reinicio = tarjeta.querySelector(".reiniciar-chat");
+  if (reinicio) reinicio.hidden = !idMascotaChat;
+  const selector = tarjeta.querySelector("[data-mascota-chat]");
+  if (selector && selector.value !== String(idMascotaChat)) {
+    selector.value = idMascotaChat;
+  }
+
+  contenedor.scrollTop = contenedor.scrollHeight;
+  return true;
+}
+
+async function refrescarChat() {
+  if (!actualizarChat()) await renderizar();
+}
+
+async function esperarEscritura(texto, inicio) {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const duracion = Math.min(1800, Math.max(650, texto.length * 19 + Math.random() * 320));
+  const restante = duracion - (performance.now() - inicio);
+  if (restante > 0) {
+    await new Promise((resolve) => setTimeout(resolve, restante));
+  }
+}
+
 async function iniciarArbol(idMascota) {
   idMascotaChat = idMascota;
   mensajesChat = [];
   progresoChat = 0;
   escribiendo = Boolean(idMascota);
-  await renderizar();
+  await refrescarChat();
   if (!idMascota) return;
 
   try {
+    const inicioEscritura = performance.now();
     const pregunta = await api.iniciarAkinator(idMascota);
+    await esperarEscritura(pregunta.Pregunta, inicioEscritura);
     mensajesChat.push({
       Tipo: "bot",
       Texto: pregunta.Pregunta,
       Opciones: pregunta.Opciones,
     });
     escribiendo = false;
-    await renderizar();
+    await refrescarChat();
   } catch (error) {
     escribiendo = false;
     manejarError(error);
-    await renderizar();
+    await refrescarChat();
   }
 }
 
@@ -156,10 +247,16 @@ async function responderArbol(numeroOpcion) {
   ultimaPregunta.Opciones = [];
   mensajesChat.push({ Tipo: "usuario", Texto: opcion.Texto_Opcion });
   escribiendo = true;
-  await renderizar();
+  await refrescarChat();
 
   try {
+    const inicioEscritura = performance.now();
     const respuesta = await api.responderAkinator(numeroOpcion);
+    const textoRespuesta =
+      respuesta.Tipo_Respuesta === "Pregunta"
+        ? respuesta.Pregunta
+        : respuesta.Texto_Recomendacion;
+    await esperarEscritura(textoRespuesta, inicioEscritura);
     if (respuesta.Tipo_Respuesta === "Pregunta") {
       progresoChat =
         ((respuesta.Numero_Pregunta - 1) / respuesta.Total_Preguntas) * 100;
@@ -179,11 +276,11 @@ async function responderArbol(numeroOpcion) {
       });
     }
     escribiendo = false;
-    await renderizar();
+    await refrescarChat();
   } catch (error) {
     escribiendo = false;
     manejarError(error);
-    await renderizar();
+    await refrescarChat();
   }
 }
 

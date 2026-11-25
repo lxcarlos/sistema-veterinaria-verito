@@ -118,8 +118,7 @@ export function login(roles, modo, rolSeleccionado) {
     <section class="acceso-layout">
       <aside class="acceso-hero">
         <div class="hero-identidad">
-          <span class="hero-marca-icono">V</span>
-          <span>VERITO <small>ATENCIÓN VETERINARIA</small></span>
+          <span>VeterinariaVerito <small>ATENCIÓN VETERINARIA</small></span>
         </div>
         <div class="hero-mensaje">
           <p class="hero-sobrelinea"><span></span> Cuidado que empieza escuchando</p>
@@ -239,7 +238,7 @@ export function menu(rol, vistaActual) {
       ? [{ vista: "citas", texto: "Citas" }]
       : [
           { vista: "mascotas", texto: "Mis mascotas" },
-          { vista: "akinator", texto: "Árbol de síntomas" },
+          { vista: "akinator", texto: "Chat" },
           { vista: "agendar", texto: "Solicitar cita" },
           { vista: "citas", texto: "Mis citas" },
         ];
@@ -271,7 +270,8 @@ export function vistaMascotas(mascotas, especies) {
           ? mascotas
               .map(
                 (mascota) => `
-                  <article class="tarjeta tarjeta-mascota">
+                  <article class="tarjeta tarjeta-mascota"
+                    data-especie="${escapar(mascota.Nombre_Especie)}">
                     <span class="icono-mascota" aria-hidden="true">✦</span>
                     <h2>${escapar(mascota.Nombre_Mascota)}</h2>
                     <p>${escapar(mascota.Nombre_Especie)}</p>
@@ -375,7 +375,7 @@ function burbuja(mensaje) {
     const solicitudCita =
       gravedad !== "Grave"
         ? `<p class="texto-secundario">
-            Este prototipo permite solicitar una cita desde el árbol cuando el resultado es grave.
+            Este prototipo permite solicitar una cita desde el chat cuando el resultado es grave.
           </p>`
         : citaActiva
           ? `<p>
@@ -408,7 +408,7 @@ function burbuja(mensaje) {
     return `
       <div class="fila-chat bot">
         <article class="tarjeta-resultado gravedad-${claseEstado(gravedad)}">
-          <p class="sobrelinea">Resultado orientativo del árbol</p>
+          <p class="sobrelinea">Orientación del chat</p>
           <h2>Prioridad ${escapar(gravedad.toLowerCase())}</h2>
           <p>${escapar(mensaje.Consulta.Texto_Recomendacion)}</p>
           <p class="texto-secundario">
@@ -420,24 +420,36 @@ function burbuja(mensaje) {
   }
 
   return `
-    <div class="fila-chat bot">
+    <div class="fila-chat bot${mensaje.Opciones?.length ? " con-opciones" : ""}">
       <div class="burbuja">
         ${escapar(mensaje.Texto)}
-        ${
-          mensaje.Opciones?.length
-            ? `<div class="opciones-chat">
-                ${mensaje.Opciones.map(
-                  (opcion) => `
-                    <button class="chip-opcion" type="button"
-                      data-opcion="${opcion.Numero_Opcion}">
-                      ${escapar(opcion.Texto_Opcion)}
-                    </button>`,
-                ).join("")}
-              </div>`
-            : ""
-        }
       </div>
+      ${
+        mensaje.Opciones?.length
+          ? `<div class="opciones-chat">
+              ${mensaje.Opciones.map(
+                (opcion) => `
+                  <button class="chip-opcion" type="button"
+                    data-opcion="${opcion.Numero_Opcion}">
+                    ${escapar(opcion.Texto_Opcion)}
+                  </button>`,
+              ).join("")}
+            </div>`
+          : ""
+      }
     </div>`;
+}
+
+export function contenidoMensajes(mensajes, escribiendo) {
+  return `${
+    mensajes.length
+      ? mensajes.map(burbuja).join("")
+      : '<p class="texto-secundario mensaje-inicial">Elige una mascota para comenzar.</p>'
+  }${
+    escribiendo
+      ? '<div class="fila-chat bot"><div class="burbuja indicador-escribiendo" role="status" aria-label="Verito está escribiendo"><span></span><span></span><span></span></div></div>'
+      : ""
+  }`;
 }
 
 export function vistaAkinator(
@@ -448,50 +460,56 @@ export function vistaAkinator(
   escribiendo,
 ) {
   return `
-    <section class="encabezado-vista">
-      <p class="sobrelinea">Orientación inicial</p>
-      <h1>Árbol de síntomas</h1>
-      <p class="texto-secundario">
-        Responde sobre tu mascota para obtener una orientación inicial, no un diagnóstico.
-      </p>
-    </section>
-    <section class="tarjeta chat-tarjeta">
-      <label class="selector-mascota">¿Para cuál mascota es la consulta?
-        <select data-mascota-chat>
-          <option value="">Selecciona una mascota</option>
-          ${mascotas
-            .map(
-              (mascota) => `
-                <option value="${mascota.Id_Mascota}"
-                  ${Number(idMascota) === mascota.Id_Mascota ? "selected" : ""}>
-                  ${escapar(mascota.Nombre_Mascota)} · ${escapar(mascota.Nombre_Especie)}
-                </option>`,
-            )
-            .join("")}
-        </select>
-      </label>
-      <div class="progreso-chat" aria-label="Progreso del árbol de síntomas">
-        <span style="width: ${progreso}%"></span>
-      </div>
-      <div class="mensajes-chat" id="mensajes-chat" aria-live="polite">
-        ${
-          mensajes.length
-            ? mensajes.map(burbuja).join("")
-            : '<p class="texto-secundario mensaje-inicial">Elige una mascota para comenzar.</p>'
-        }
-        ${
-          escribiendo
-            ? '<div class="fila-chat bot"><div class="burbuja indicador-escribiendo" aria-label="Procesando respuesta"><span></span><span></span><span></span></div></div>'
-            : ""
-        }
-      </div>
-      ${
-        idMascota
-          ? `<button class="boton-texto reiniciar-chat" type="button"
-              data-accion="reiniciar-chat">Reiniciar árbol</button>`
-          : ""
-      }
-    </section>`;
+    <div class="vista-chat">
+      <section class="encabezado-vista encabezado-chat">
+        <p class="sobrelinea">Chat · Orientación inicial</p>
+        <h1>¿Qué le pasa a tu <span>mascota?</span></h1>
+        <p class="texto-secundario">
+          Responde unas preguntas y Verito te orienta.
+        </p>
+      </section>
+      <section class="tarjeta chat-tarjeta">
+        <div class="chat-cabecera">
+          <div class="chat-identidad">
+            <span class="chat-avatar" aria-hidden="true">🐾</span>
+            <span class="chat-identidad-texto">
+              <strong>Verito</strong>
+              <small>
+                <span class="chat-presencia" aria-hidden="true"></span>
+                Pre-triage veterinario
+              </small>
+            </span>
+          </div>
+          <label class="selector-mascota">
+            <span>¿Para cuál mascota es la consulta?</span>
+            <select data-mascota-chat>
+              <option value="">Selecciona una mascota</option>
+              ${mascotas
+                .map(
+                  (mascota) => `
+                    <option value="${mascota.Id_Mascota}"
+                      ${Number(idMascota) === mascota.Id_Mascota ? "selected" : ""}>
+                      ${escapar(mascota.Nombre_Mascota)} · ${escapar(mascota.Nombre_Especie)}
+                    </option>`,
+                )
+                .join("")}
+            </select>
+          </label>
+        </div>
+        <div class="chat-progreso-cabecera">
+          <span>Progreso de orientación</span>
+          <strong>${progreso}%</strong>
+        </div>
+        <div class="progreso-chat" aria-label="Progreso del chat">
+          <span style="width: ${progreso}%"></span>
+        </div>
+        <div class="mensajes-chat" id="mensajes-chat" aria-live="polite">
+          ${contenidoMensajes(mensajes, escribiendo)}
+        </div>
+        <button class="boton-texto reiniciar-chat" type="button"
+          data-accion="reiniciar-chat" ${idMascota ? "" : "hidden"}>Reiniciar chat</button>
+      </section>
+    </div>`;
 }
 
 export function vistaCitas(citas, esVeterinario) {
@@ -518,7 +536,7 @@ export function vistaCitas(citas, esVeterinario) {
                         <p>${escapar(cita.Texto_Recomendacion)}</p>
                         ${
                           esVeterinario && cita.Resultado_Prel
-                            ? `<p>Prioridad orientativa del árbol: ${escapar(cita.Resultado_Prel)}</p>
+                            ? `<p>Prioridad orientativa del chat: ${escapar(cita.Resultado_Prel)}</p>
                                <p>Respuestas: ${escapar(cita.Sintomas_Cap)}</p>`
                             : ""
                         }

@@ -98,7 +98,9 @@ IF NOT EXISTS (
             FOREIGN KEY (FK_ID_Consulta)
             REFERENCES dbo.Consultas_Akinator(PK_ID_Consulta);
 
-/* Migrate the previous appointment link without deleting existing records. */
+
+/* Migrar el enlace de la cita anterior sin eliminar los registros existentes. */
+
 IF COL_LENGTH('dbo.Citas', 'FK_ID_Mascota') IS NULL
 BEGIN
     EXEC sp_executesql N'ALTER TABLE dbo.Citas ADD FK_ID_Mascota INT NULL;';
