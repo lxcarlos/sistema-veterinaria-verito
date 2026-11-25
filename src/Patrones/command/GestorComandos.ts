@@ -1,35 +1,26 @@
 import type { Comando } from "./Comando";
 
 export class GestorComandos {
-  private historiales: { [token: string]: Comando[] } = {};
+  private readonly historiales = new Map<string, Comando[]>();
 
-  public ejecutar(token: string, comando: Comando) {
-    return comando.ejecutar().then(() => {
-      if (!this.historiales[token]) {
-        this.historiales[token] = [];
-      }
-      this.historiales[token].push(comando);
-    });
+  public async ejecutar(token: string, comando: Comando): Promise<void> {
+    await comando.ejecutar();
+    const historial = this.historiales.get(token) ?? [];
+    historial.push(comando);
+    this.historiales.set(token, historial);
   }
 
-  public deshacerUltimo(token: string) {
-    const historial = this.historiales[token];
-    if (!historial || historial.length === 0) {
-      return Promise.resolve(undefined);
-    }
+  public async deshacerUltimo(token: string): Promise<Comando | undefined> {
+    const historial = this.historiales.get(token);
+    const comando = historial?.[historial.length - 1];
+    if (!comando || !historial) return undefined;
 
-    const ultimoComando = historial[historial.length - 1];
-    if (!ultimoComando) {
-      return Promise.resolve(undefined);
-    }
-
-    return ultimoComando.deshacer().then(() => {
-      historial.pop();
-      return ultimoComando;
-    });
+    await comando.deshacer();
+    historial.pop();
+    return comando;
   }
 
   public limpiar(token: string): void {
-    delete this.historiales[token];
+    this.historiales.delete(token);
   }
 }
