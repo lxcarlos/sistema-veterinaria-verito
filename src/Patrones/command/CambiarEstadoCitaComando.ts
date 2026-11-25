@@ -1,23 +1,29 @@
 import type { Comando } from "./Comando";
 
 export class CambiarEstadoCitaComando implements Comando {
-  public readonly tipoAccion = "Estado_Cita" as const;
-  public readonly idElemento: number;
+  public tipoAccion: string = "Estado_Cita";
+  public idElemento: number;
+  private estadoAnterior: string;
+  private estadoNuevo: string;
+  private actualizar: Function;
 
-  public constructor(
+  constructor(
     idCita: number,
-    private readonly estadoAnterior: string,
-    private readonly estadoNuevo: string,
-    private readonly actualizar: (estado: string, esperado: string) => Promise<void>,
+    estadoAnterior: string,
+    estadoNuevo: string,
+    actualizar: Function,
   ) {
     this.idElemento = idCita;
+    this.estadoAnterior = estadoAnterior;
+    this.estadoNuevo = estadoNuevo;
+    this.actualizar = actualizar;
   }
 
-  public async ejecutar(): Promise<void> {
-    await this.actualizar(this.estadoNuevo, this.estadoAnterior);
+  public ejecutar() {
+    return this.actualizar(this.estadoNuevo, this.estadoAnterior);
   }
 
-  public async deshacer(): Promise<void> {
-    await this.actualizar(this.estadoAnterior, this.estadoNuevo);
+  public deshacer() {
+    return this.actualizar(this.estadoAnterior, this.estadoNuevo);
   }
 }

@@ -1,22 +1,26 @@
 import type { Comando } from "./Comando";
 
 export class RegistrarMascotaComando implements Comando {
-  public readonly tipoAccion = "Mascota" as const;
+  public tipoAccion: string = "Mascota";
   public idElemento: number | null = null;
+  private crear: Function;
+  private eliminar: Function;
 
-  public constructor(
-    private readonly crear: () => Promise<number>,
-    private readonly eliminar: (idMascota: number) => Promise<void>,
-  ) {}
-
-  public async ejecutar(): Promise<void> {
-    this.idElemento = await this.crear();
+  constructor(crear: Function, eliminar: Function) {
+    this.crear = crear;
+    this.eliminar = eliminar;
   }
 
-  public async deshacer(): Promise<void> {
+  public ejecutar() {
+    return this.crear().then((id: number) => {
+      this.idElemento = id;
+    });
+  }
+
+  public deshacer() {
     if (this.idElemento === null) {
       throw new Error("No se puede deshacer una mascota que no fue registrada.");
     }
-    await this.eliminar(this.idElemento);
+    return this.eliminar(this.idElemento);
   }
 }
